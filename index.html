@@ -1,0 +1,1933 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>メモ帳 — Markdown</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF0F4; --paper:#FFFFFF; --ink:#1C2333; --ink-2:#66708A;
+  --rule:#D5DBE6; --accent:#2F5BC7; --accent-soft:#E7EDFB; --code:#F2F4F8; --danger:#B3372E;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14171E; --paper:#1B1F28; --ink:#E6E9F0; --ink-2:#8A93A8;
+    --rule:#2C3340; --accent:#8FB0F5; --accent-soft:#243149; --code:#232935; --danger:#F08A80;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14171E; --paper:#1B1F28; --ink:#E6E9F0; --ink-2:#8A93A8;
+  --rule:#2C3340; --accent:#8FB0F5; --accent-soft:#243149; --code:#232935; --danger:#F08A80;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+html{--font-body:"IBM Plex Sans JP","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;--font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;--fs:16px}
+body{
+  display:flex; height:100dvh; overflow:hidden;
+  font-family:var(--font-body);
+  font-size:16px; color:var(--ink); background:var(--bg);
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---- sidebar ---- */
+.side{
+  width:248px; flex:none; display:flex; flex-direction:column;
+  border-right:1px solid var(--rule); background:var(--bg);
+}
+.side-head{display:flex;align-items:center;justify-content:space-between;padding:16px 14px 8px 18px}
+.side-head h1{margin:0;font-size:15px;font-weight:600;letter-spacing:.02em}
+.list{flex:1;overflow-y:auto;padding:4px 8px 16px}
+.item{position:relative;border-radius:8px;margin-bottom:2px}
+.item .open{display:block;width:100%;text-align:left;padding:9px 30px 9px 10px;border-radius:8px}
+.item .t{display:block;font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .d{display:block;font-size:12px;color:var(--ink-2);margin-top:2px}
+.item:hover .open{background:color-mix(in srgb,var(--paper) 60%,transparent)}
+.item.active .open{background:var(--paper);box-shadow:inset 3px 0 0 var(--accent)}
+.item.dragging{opacity:.4}
+.item.drop-before{box-shadow:0 -2px 0 0 var(--accent)}
+.item.drop-after{box-shadow:0 2px 0 0 var(--accent)}
+.item[draggable="true"] .open{cursor:grab}
+.item.dragging .open{cursor:grabbing}
+.list .item{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.list.touch-dragging{overscroll-behavior:contain}
+.list.touch-dragging .item.dragging{opacity:.55;background:var(--paper);box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.item .x{position:absolute;right:6px;top:8px;width:24px;height:24px;border-radius:6px;color:var(--ink-2);font-size:16px;line-height:24px;text-align:center;opacity:0}
+.item:hover .x,.item .x:focus-visible{opacity:1}
+.item .x:hover{background:var(--paper);color:var(--danger)}
+.item.confirm{padding:9px 10px;background:var(--paper)}
+.item.confirm .t{white-space:normal;font-weight:400;font-size:13px;color:var(--ink-2)}
+.item.confirm .acts{display:flex;gap:6px;margin-top:8px}
+
+.fs{border-top:1px solid var(--rule);padding:10px 12px 12px;font-size:12.5px;color:var(--ink-2)}
+.fs[hidden]{display:none}
+.fs .name{display:flex;align-items:center;gap:6px;min-width:0;margin-bottom:6px}
+.fs .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
+.fs .dot.off{background:var(--ink-2)}
+.fs .acts{display:flex;gap:4px;flex-wrap:wrap}
+.fs .btn{padding:4px 8px}
+.fs p{margin:0 0 6px;line-height:1.5}
+.fs .lbl{font-size:11.5px;margin-bottom:2px}
+.fs .name span.nm{font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fs .name .st{flex:none;font-size:11.5px}
+.tg{font-size:11.5px;font-family:var(--font-mono);color:var(--ink-2);border:1px solid var(--rule);border-radius:5px;padding:3px 6px;line-height:1.2;flex:none}
+.tg:hover{color:var(--ink)}
+.tg.on{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+.gsearch{display:flex;align-items:center;gap:4px;padding:2px 10px 8px 12px}
+.gsearch input{flex:1;min-width:0;font:inherit;font-size:13px;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:7px;padding:6px 9px;outline:none}
+.gsearch input:focus{border-color:var(--accent)}
+.gsearch input::-webkit-search-cancel-button{-webkit-appearance:none}
+.item .open .snip{display:block;font-size:12px;color:var(--ink-2);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--font-mono)}
+.item .open .snip mark{background:var(--accent-soft);color:var(--accent);border-radius:2px;padding:0 1px}
+.item .open .n{float:right;font-size:11px;color:var(--accent);background:var(--accent-soft);border-radius:9px;padding:1px 7px;margin-left:6px}
+.list .more{display:block;width:100%;text-align:center;font-size:12.5px;color:var(--accent);padding:8px;border-radius:8px}
+.list .more:hover{background:var(--paper)}
+.empty{font-size:12.5px;color:var(--ink-2);padding:10px 12px;line-height:1.5}
+.findbar{flex:none;border-bottom:1px solid var(--rule);background:var(--bg);padding:6px 16px 6px 20px}
+.findbar[hidden]{display:none}
+.findbar .row{display:flex;align-items:center;gap:6px;max-width:44rem;margin:0 auto}
+.findbar .row+.row{margin-top:6px}
+.findbar .row[hidden]{display:none}
+.findbar input{flex:1;min-width:0;font:inherit;font-size:13.5px;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:7px;padding:6px 10px;outline:none}
+.findbar input:focus{border-color:var(--accent)}
+.findbar input.bad,.gsearch input.bad{border-color:var(--danger)}
+.findbar .cnt{font-size:12px;color:var(--ink-2);white-space:nowrap;min-width:3.5em;text-align:right;font-feature-settings:"tnum"}
+.findbar .cnt.none{color:var(--danger)}
+.block.hit:not(.editing){background:color-mix(in srgb,var(--accent-soft) 70%,transparent);border-radius:4px}
+.block.peek{background:transparent}
+.block.bsel{background:var(--accent-soft);border-radius:4px}
+body.bselecting,body.bselecting *{user-select:none;-webkit-user-select:none}
+.block.bsel::selection,.block.bsel *::selection{background:transparent}
+.block mark.fm{background:var(--accent);color:var(--paper);border-radius:3px;padding:0 1px}
+.help{display:inline-block;width:20px;height:20px;border-radius:50%;border:1px solid var(--rule);font-size:12px;line-height:18px;text-align:center;color:var(--ink-2);vertical-align:2px;margin-left:4px}
+.help:hover{color:var(--accent);border-color:var(--accent)}
+#lockBtn.locked{color:var(--accent);background:var(--accent-soft)}
+.item .lk{font-size:11px;color:var(--ink-2);margin-right:4px}
+body.locked .block{cursor:default}
+body.locked .cb{cursor:default}
+.btn{font-size:13px;color:var(--ink-2);padding:6px 10px;border-radius:6px;border:1px solid transparent;white-space:nowrap}
+.btn:hover{color:var(--ink);background:var(--paper)}
+.main .btn:hover{background:var(--bg)}
+.btn.primary{color:var(--accent);font-weight:500}
+.btn.danger{color:var(--danger)}
+.btn.on{background:var(--accent-soft);color:var(--accent)}
+.btn[hidden]{display:none}
+.btn.icon{font-size:17px;padding:4px 8px;line-height:1}
+.btn:disabled{opacity:.35;cursor:default;background:none;color:var(--ink-2)}
+
+/* ---- main ---- */
+.main{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--paper)}
+.top{display:flex;align-items:center;gap:6px;height:52px;padding:0 16px 0 20px;border-bottom:1px solid var(--rule);flex:none}
+.top .title{flex:1;min-width:0;font-size:14px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.menu{display:block;width:32px;height:32px;border-radius:6px;font-size:14px;margin-right:4px;margin-left:-8px;color:var(--ink-2)}
+.menu:hover{background:var(--bg);color:var(--ink)}
+.more{display:contents}
+.fwrap{position:relative}
+.fmenu{display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:30;flex-direction:column;min-width:230px;padding:6px;background:var(--paper);border:1px solid var(--rule);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.fmenu.open{display:flex}
+.fmenu .btn{text-align:left;padding:8px 12px;color:var(--ink)}
+.fmenu .btn[hidden]{display:none}
+.fm-h{font-size:11.5px;color:var(--ink-2);padding:6px 12px 2px;text-align:left}
+.fm-sep{border-top:1px solid var(--rule);margin:5px 4px}
+.mobileOnly{display:none}
+body.side-hidden .side{display:none}
+.moreBtn{display:none;font-size:18px;line-height:1;padding:4px 10px}
+.top{position:relative}
+.editor{flex:1;overflow-y:auto;padding:36px 24px 45vh;cursor:text;font-size:var(--fs)}
+.page{max-width:44rem;margin:0 auto}
+.source{display:none;width:100%;min-height:50vh;resize:none;overflow:hidden;font-family:var(--font-mono);font-size:.92em;line-height:1.8;color:var(--ink);background:transparent;border:0;border-radius:0;padding:2px 0;margin:0;caret-color:var(--accent);white-space:pre-wrap;word-break:break-word}
+.source:focus{outline:none}
+body.src .source{display:block}
+body.src .blocks{display:none}
+
+/* ---- blocks ---- */
+.block{
+  position:relative; padding:2px 0 2px 16px; margin-left:-16px;
+  min-height:1.8em; line-height:1.8; white-space:pre-wrap; word-break:break-word;
+  outline:none; caret-color:var(--accent);
+}
+.block.editing::before{content:"";position:absolute;left:0;top:.4em;bottom:.4em;width:2px;border-radius:1px;background:var(--accent)}
+.block.b-empty:only-child::after{content:attr(data-ph);position:absolute;left:16px;top:2px;color:var(--ink-2);pointer-events:none;white-space:nowrap}
+.block strong{font-weight:600}
+.block code{font-family:var(--font-mono);font-size:.88em;background:var(--code);padding:.1em .4em;border-radius:4px}
+.block a{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+.block h1,.block h2,.block h3,.block h4,.block h5,.block h6,.block blockquote,.block pre{margin:0;font:inherit}
+.b-h1{font-size:1.75em;font-weight:600;line-height:1.35;margin-top:1.1em}
+.b-h2{font-size:1.4em;font-weight:600;line-height:1.4;margin-top:.9em}
+.b-h3{font-size:1.15em;font-weight:600;margin-top:.6em}
+.b-h4,.b-h5,.b-h6{font-weight:600;margin-top:.4em}
+.b-h1:first-child,.b-h2:first-child,.b-h3:first-child{margin-top:0}
+.b-quote{border-left:3px solid var(--rule);padding-left:14px;margin-left:-14px;color:var(--ink-2)}
+.b-quote.editing::before{display:none}
+.b-quote.editing{border-left-color:var(--accent)}
+.b-code{font-family:var(--font-mono);font-size:.9em;line-height:1.65;background:var(--code);border-radius:8px;padding:12px 16px;margin:6px -16px}
+.b-code pre{white-space:pre-wrap}
+.b-code.editing::before{left:0;top:12px;bottom:12px}
+.b-table.editing{font-family:var(--font-mono);font-size:.88em;line-height:1.7;white-space:pre;overflow-x:auto}
+.tbl{overflow-x:auto;margin:6px 0}
+.tbl table{border-collapse:collapse;font-size:.95em;line-height:1.5;min-width:40%}
+.tbl th,.tbl td{border:1px solid var(--rule);padding:6px 12px;text-align:left;vertical-align:top}
+.tbl th{font-weight:600;background:var(--code)}
+.tbl tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--code) 45%,transparent)}
+.b-hr hr{border:0;border-top:1px solid var(--rule);margin:14px 0}
+.b-hr.editing{color:var(--ink-2)}
+.b-li:not(.editing){padding-left:calc(16px + 1.7em + var(--indent,0)*1.5em)}
+.b-li.editing{padding-left:calc(16px + var(--indent,0)*1.2em)}
+.b-li:not(.editing)::before{content:attr(data-mark);position:absolute;left:calc(16px + var(--indent,0)*1.5em);color:var(--ink-2);font-feature-settings:"tnum"}
+.b-ol:not(.editing)::before{font-size:.92em}
+.b-task:not(.editing)::before{content:none}
+.cb{position:absolute;left:calc(16px + var(--indent,0)*1.5em);top:.5em;width:1.05em;height:1.05em;border:1.5px solid var(--ink-2);border-radius:4px;cursor:pointer;transition:background .12s}
+.cb:hover{border-color:var(--accent)}
+.b-task.done .cb{background:var(--accent);border-color:var(--accent)}
+.b-task.done .cb::after{content:"";position:absolute;left:.3em;top:.1em;width:.28em;height:.55em;border:solid var(--paper);border-width:0 2px 2px 0;transform:rotate(45deg)}
+.b-task.done .txt{color:var(--ink-2);text-decoration:line-through}
+
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,10px);background:var(--ink);color:var(--paper);font-size:13px;padding:8px 14px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(20,23,30,.45)}
+.modal[hidden]{display:none}
+.modal-box{width:100%;max-width:420px;background:var(--paper);border-radius:12px;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.modal-box h2{margin:0 0 6px;font-size:17px;font-weight:600}
+.modal-box p{margin:0 0 16px;font-size:13px;color:var(--ink-2)}
+.choice{display:block;width:100%;text-align:left;padding:12px 14px;margin-bottom:8px;border:1px solid var(--rule);border-radius:10px;background:var(--paper)}
+.choice:hover{border-color:var(--accent);background:var(--accent-soft)}
+.choice b{display:block;font-weight:600;font-size:14px;margin-bottom:2px}
+.choice span{display:block;font-size:12.5px;color:var(--ink-2);line-height:1.5}
+.modal-box .btn{display:block;margin:4px auto 0}
+.modal-box .acts{display:flex;justify-content:flex-end;gap:6px;margin-top:4px}
+.modal-box .acts .btn{display:inline-block;margin:0}
+#fsDlg .modal-box p{line-height:1.6}
+.settings-box .row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0;font-size:14px}
+.settings-box .row.sub{margin-top:-4px;font-size:13px;color:var(--ink-2)}
+.settings-box .row>span{flex:none}
+.settings-box .row>span b{font-weight:500;color:var(--ink-2);margin-left:6px}
+.settings-box select,.settings-box input:not([type=range]){flex:1;min-width:0;font:inherit;font-size:13.5px;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:7px;padding:6px 9px}
+.settings-box input[type=range]{flex:1;accent-color:var(--accent)}
+.settings-box .hint{font-size:12px;margin:8px 0 0;line-height:1.5}
+.settings-box .acts{display:flex;justify-content:flex-end;gap:6px;margin-top:16px}
+.settings-box .acts .btn{display:inline-block;margin:0}
+.settings-box .dev{margin-top:16px;padding-top:12px;border-top:1px dashed var(--rule)}
+.settings-box .dev h3{margin:0 0 4px;font-size:13px;font-weight:600;color:var(--danger)}
+.settings-box .dev .acts{justify-content:flex-start;margin-top:6px}
+.settings-box .dev .btn.danger{border-color:var(--danger)}
+.backdrop{display:none}
+.drop{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;background:color-mix(in srgb,var(--paper) 70%,transparent);pointer-events:none}
+body.dragging .drop{display:flex}
+.drop-box{padding:28px 36px;border:2px dashed var(--accent);border-radius:12px;background:var(--paper);color:var(--ink);font-size:15px;font-weight:500;text-align:center}
+.drop-box span{display:block;margin-top:6px;font-size:13px;font-weight:400;color:var(--ink-2)}
+
+@media (max-width:720px){
+  .b-h1{font-size:1.5em}
+  .side{position:fixed;inset:0 auto 0 0;z-index:20;transform:translateX(-100%);transition:transform .2s;box-shadow:0 0 0 1px var(--rule)}
+  .side.open{transform:none}
+  .backdrop{display:block;position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .2s}
+  .backdrop.show{opacity:1;pointer-events:auto}
+  .menu{margin-left:0;font-size:18px}
+  .top{padding:0 10px 0 12px;gap:2px}
+  .top .title{display:none}
+  .top .btn{padding:6px 8px}
+  .moreBtn{display:block}
+  .more{display:none;position:absolute;right:10px;top:48px;z-index:30;flex-direction:column;min-width:190px;padding:6px;background:var(--paper);border:1px solid var(--rule);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+  .more.open{display:flex}
+  .more .btn{text-align:left;padding:10px 12px;font-size:14px;color:var(--ink)}
+  #fileBtn{display:none}
+  .fmenu{display:flex;position:static;min-width:0;padding:0;border:0;box-shadow:none;background:none}
+  .fmenu .btn{padding:10px 12px}
+  .more .mobileOnly{display:block}
+  .more{max-width:calc(100vw - 20px)}
+  .fwrap{display:block;border-bottom:1px solid var(--rule);margin-bottom:5px;padding-bottom:5px}
+  body.side-hidden .side{display:flex}
+  .editor{padding:24px 18px 45vh}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<aside class="side" id="side">
+  <div class="side-head">
+    <h1>メモ帳 <button class="help" id="helpBtn" title="使い方を開く" aria-label="使い方を開く">？</button><button class="help" id="settingsBtn" title="設定" aria-label="設定">⚙</button></h1>
+    <button class="btn primary" id="newNote">＋ 新しいメモ</button>
+  </div>
+  <div class="gsearch">
+    <input id="gq" type="search" placeholder="すべてのメモを検索" aria-label="すべてのメモを検索" autocomplete="off">
+    <button class="tg" id="gcs" title="大文字と小文字を区別">Aa</button>
+    <button class="tg" id="gre" title="正規表現">.*</button>
+  </div>
+  <div class="list" id="list"></div>
+  <div class="fs" id="fs" hidden></div>
+</aside>
+<div class="backdrop" id="backdrop"></div>
+<div class="main">
+  <header class="top">
+    <button class="menu" id="menu" aria-label="メモ一覧">☰</button>
+    <div class="title" id="title"></div>
+    <button class="btn icon" id="undo" title="元に戻す (Ctrl/⌘+Z)" aria-label="元に戻す">↶</button>
+    <button class="btn icon" id="redo" title="やり直す (Ctrl/⌘+Shift+Z)" aria-label="やり直す">↷</button>
+    <button class="btn" id="lockBtn" title="ロック／解除"></button>
+    <button class="btn" id="findBtn" title="このメモ内を検索 (Ctrl/⌘+F)">検索</button>
+    <button class="btn moreBtn" id="moreBtn" aria-label="その他の操作" aria-expanded="false">…</button>
+    <div class="more" id="moreMenu">
+      <span class="fwrap" id="fwrap">
+        <button class="btn" id="fileBtn" aria-haspopup="true" aria-expanded="false">ファイル ▾</button>
+        <div class="fmenu" id="fileMenu">
+          <div class="fm-h">ファイルを開く</div>
+          <button class="btn" id="openFile">指定したファイルを開く</button>
+          <button class="btn" id="openZip">.zip内のすべての.mdを開く</button>
+          <button class="btn" id="openDir" data-fs>フォルダ内のすべての.mdを開く</button>
+          <div class="fm-sep"></div>
+          <button class="btn" id="download">このファイルを.mdで保存</button>
+          <div class="fm-sep"></div>
+          <div class="fm-h">すべてのファイルを保存</div>
+          <button class="btn" id="exportDir" data-fs>フォルダへ書き出し</button>
+          <button class="btn" id="exportZip">.zipで保存</button>
+        </div>
+      </span>
+      <button class="btn" id="toggleSrc">Markdownを表示</button>
+      <button class="btn mobileOnly" id="copy">すべてをコピー</button>
+    </div>
+    <input type="file" id="fileInput" accept=".md,.markdown,.txt,.zip,text/plain,text/markdown,application/zip" multiple hidden>
+    <input type="file" id="zipInput" accept=".zip,application/zip" multiple hidden>
+  </header>
+  <div class="findbar" id="findbar" hidden>
+    <div class="row">
+      <input id="fq" placeholder="このメモ内を検索" aria-label="このメモ内を検索" autocomplete="off">
+      <button class="tg" id="fcs" title="大文字と小文字を区別">Aa</button>
+      <button class="tg" id="fre" title="正規表現">.*</button>
+      <span class="cnt" id="fcnt"></span>
+      <button class="btn" id="frepToggle" title="置換欄を表示 (Ctrl/⌘+H)">置換</button>
+      <button class="btn icon" id="fprev" title="前へ (Shift+Enter)">↑</button>
+      <button class="btn icon" id="fnext" title="次へ (Enter)">↓</button>
+      <button class="btn icon" id="fclose" title="閉じる (Esc)">×</button>
+    </div>
+    <div class="row" id="frow" hidden>
+      <input id="fr" placeholder="置換後の文字（正規表現なら $1 も可）" aria-label="置換後の文字" autocomplete="off">
+      <button class="btn" id="frep1">置換</button>
+      <button class="btn" id="frepall">すべて置換</button>
+    </div>
+  </div>
+  <main class="editor" id="editor">
+    <div class="page" id="page">
+      <div class="blocks" id="blocks"></div>
+      <textarea class="source" id="source" spellcheck="false" aria-label="Markdownソース"></textarea>
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+<div class="modal" id="settings" hidden>
+  <div class="modal-box settings-box" role="dialog" aria-labelledby="settingsTitle">
+    <h2 id="settingsTitle">設定</h2>
+    <p>見た目の設定です。このブラウザにだけ保存され、メモの内容や.mdファイルには影響しません。</p>
+    <label class="row"><span>本文のフォント</span><select id="sBody"></select></label>
+    <label class="row sub" id="sBodyCustomRow" hidden><span>フォント名</span><input id="sBodyCustom" placeholder="例: BIZ UDPGothic、游明朝、Zen Kaku Gothic New"></label>
+    <label class="row"><span>コードのフォント</span><select id="sMono"></select></label>
+    <label class="row sub" id="sMonoCustomRow" hidden><span>フォント名</span><input id="sMonoCustom" placeholder="例: Consolas、JetBrains Mono"></label>
+    <label class="row"><span>文字サイズ <b id="sSizeVal"></b></span><input type="range" id="sSize" min="13" max="22" step="1"></label>
+    <p class="hint">パソコンに入っているフォントは名前で指定できます。Google Fontsにあるフォント名を入れると、自動で読み込みます。</p>
+    <div class="dev" id="devPanel" hidden>
+      <h3>テスト用</h3>
+      <p class="hint" id="devInfo"></p>
+      <div class="acts"><button class="btn danger" id="devReset">ブラウザ内の保存データをすべて消す</button></div>
+      <p class="hint">メモ・設定・フォルダ接続の記憶を消して、初めて開いた状態に戻します。フォルダ内の.mdファイルは消えません。</p>
+    </div>
+    <div class="acts"><button class="btn" id="sReset">初期設定に戻す</button><button class="btn primary" id="sClose">閉じる</button></div>
+  </div>
+</div>
+<div class="modal" id="fsDlg" hidden>
+  <div class="modal-box" role="dialog" aria-labelledby="fsDlgTitle">
+    <h2 id="fsDlgTitle"></h2>
+    <p id="fsDlgMsg"></p>
+    <div class="acts"><button class="btn" data-dlg="cancel">キャンセル</button><button class="btn primary" data-dlg="ok"></button></div>
+  </div>
+</div>
+<div class="modal" id="setup" hidden>
+  <div class="modal-box" role="dialog" aria-labelledby="setupTitle">
+    <h2 id="setupTitle">メモの保存先を選んでください</h2>
+    <p>あとからサイドバーの下で変えられます。</p>
+    <button class="choice" data-choice="browser"><b>ブラウザに保存する</b><span>このブラウザの中にメモを保存します。ファイルは作りません。</span></button>
+    <button class="choice" data-choice="folder"><b>フォルダに保存する</b><span>パソコンのフォルダを選び、メモを .md ファイルとして保存します。フォルダに .md があれば読み込みます。</span></button>
+    <button class="btn" data-choice="later">あとで決める</button>
+  </div>
+</div>
+<div class="drop" id="drop"><div class="drop-box">ここに落とすと新しいメモとして追加します<span>.md / .txt などのテキストファイル</span></div></div>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const blocksEl = $('#blocks'), editorEl = $('#editor'), pageEl = $('#page'), listEl = $('#list');
+const titleEl = $('#title'), sourceEl = $('#source'), toastEl = $('#toast');
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const PLACEHOLDER = 'ここに書き始めましょう';
+const KEY = 'wysimd.v1';
+
+const MANUAL = "# メモ帳の使い方\n\nこのメモはロックされています。編集したいときは右上の鍵をクリックして解除してください。削除されても、左上の「？」からいつでも入れ直せます。\n\n## 画面の見方\n\n| 場所 | 内容 |\n| --- | --- |\n| サイドバー | メモの一覧（並びは自由に入れ替え可）。上に「すべてのメモを検索」、下に保存先 |\n| 上部バー | ＜ ＞（サイドバーを隠す／表示。スマホは☰）、現在のメモのタイトル、↶ ↷（元に戻す／やり直す）、鍵（ロック）、検索、ファイル、Markdownを表示 |\n| 編集エリア | 行をクリックすると、その行だけ元のMarkdownが現れて編集できる |\n\n左上の「＜」かCtrl/⌘+`\\`でサイドバーを隠せます。隠すとボタンが「＞」に変わり、押すと戻ります（隠した状態は次に開いたときも続きます）。スマホなど画面が狭いときは「☰」でサイドバーを開閉し、上部バーの操作は「…」にまとまります。\n\n## 基本の書き方\n\n| 書きたいもの | 書き方 | 補足 |\n| --- | --- | --- |\n| 見出し | `# 見出し`（`#`は1〜6個） | 最初の行がメモのタイトルになる |\n| 箇条書き | `- 項目` | Enterで次の項目。空の項目でEnterすると抜ける |\n| 番号付き | `1. 項目` | 番号は表示時に1から振り直す。`1.` だけで書いてもよい |\n| チェックボックス | `- [ ] やること` | 四角をクリックで切り替え |\n| 太字 | `**文字**` | Ctrl/⌘+B |\n| 斜体 | `*文字*` | Ctrl/⌘+I |\n| コード | `` `文字` `` | Ctrl/⌘+E |\n| 取り消し線 | `~~文字~~` |  |\n| リンク | `[文字](https://…)` | Ctrl/⌘を押しながらクリックで開く |\n| 引用 | `> 文章` |  |\n| コードブロック | ```` ``` ```` で囲む | 中ではEnterが改行。閉じの ```` ``` ```` の行末でEnterで抜ける |\n| 区切り線 | `---` |  |\n\n- 箇条書きの中でTab：字下げ。Shift+Tabで戻す。番号付きは字下げすると `1.` から\n- Shift+Enter：同じ行の中で改行\n- 行頭でBackspace：前の行とつなぐ\n\n## 表の書き方\n\n`| 名前 | 点数` と書いてEnterを押すと、行末の `|` と区切り行 `| --- | --- |` が自動で入り、次の行が `| ` で始まります。あとはセルを `|` で区切りながら書き、Enterで次の行へ。行頭に `|` だけの状態でEnterを押すと表を抜けます。\n\n- Tab／Shift+Tab：次／前のセルへ。最後のセルでTabするとセルを追加\n- 編集を終えると縦線が揃うよう自動で整形\n- 区切り行を `:---` `:---:` `---:` にすると左寄せ・中央・右寄せ\n- セルの中に `|` を書くときは `\\|`\n\n## 検索と置換\n\n**このメモ内**：上部の「検索」か Ctrl/⌘+F。Ctrl/⌘+H で置換欄も開きます（バー内の「置換」でも切り替え）。\n\n- Aa：大文字と小文字を区別、.*：正規表現\n- Enter／↓で次、Shift+Enter／↑で前。該当する行は薄く色が付き、いま見ている一致はその行の元のMarkdownの中で反転\n- Esc：閉じて、その一致箇所を選択した状態で編集に入る\n- 置換：1件ずつ（置換後は次へ進む）。すべて置換：一括。Undoで戻せる。正規表現なら `$1` で捕捉した文字を使える\n\n**すべてのメモ**：サイドバー上の検索欄（Ctrl/⌘+Shift+F）。該当するメモだけが件数と抜粋つきで並びます。3件まで表示し、「さらに表示」で残りを開きます。クリックするとそのメモが開き、同じ検索語がメモ内検索に引き継がれます。\n\n## 行の選択\n\n編集中の行でShift+↓（行末側）／Shift+↑（行頭側）を押すと、行単位の選択が始まります。続けてShift+↑↓で範囲を伸ばしたり縮めたりできます。\n\n- Ctrl/⌘+C：選択した行のMarkdownをコピー\n- Ctrl/⌘+X、Backspace、Delete：選択した行を削除\n- Tab／Shift+Tab、Alt+Shift+→／←：選択した行をまとめて字下げ／戻す\n- Alt+Shift+↑／↓：選択した行をまとめて上下に移動\n- 文字を打つ、Enter：選択行を消してその場で入力を始める\n- Esc、矢印キー、クリック：選択を解除\n- Ctrl/⌘+A：メモの全行を選択（そのままCtrl/⌘+Cで全体をコピー）\n\n行の途中から別の行の途中まで、という文字単位の選択はできません。\n\n## メモの管理とロック\n\n- 新しいメモ：「＋ 新しいメモ」（一覧の先頭に入ります）\n- 並べ替え：一覧の項目をドラッグして好きな位置へ。スマホでは項目を長押しして持ち上げてから指を動かす（端まで運ぶと一覧がスクロール）。更新しても並びは変わりません\n- 削除：一覧の項目にマウスを乗せて「×」→「削除する」\n- ロック：上部の鍵をクリック。ロック中は本文を編集・削除できません。閲覧・検索・コピー・.md保存はできます。もう一度クリックで解除\n- 元に戻す／やり直す：↶ ↷、Ctrl/⌘+Z、Ctrl/⌘+Shift+Z（Ctrl+Y）。履歴はメモごと\n- Markdownを表示：メモ全体を生のMarkdownとして表示・編集\n- ？：この使い方を開く（削除されていれば入れ直す）\n\n## ファイルの読み込みと書き出し\n\n上部バーの「ファイル」（スマホは「…」）にまとまっています。1ファイル＝1メモです。\n\n| メニュー | すること |\n| --- | --- |\n| 指定したファイルを開く | 選んだ.md／.txt（複数可）をメモとして追加 |\n| .zip内のすべての.mdを開く | .zipの中の.mdをすべてメモとして追加（書き出した控えを戻すとき） |\n| フォルダ内のすべての.mdを開く | 選んだフォルダの.mdをすべて一度だけ読み込む（Chrome/Edge） |\n| このファイルを.mdで保存 | 表示中のメモを.mdファイルとしてダウンロード |\n| すべてのファイルを保存 → フォルダへ書き出し | 選んだフォルダに全メモを `タイトル.md` として一度だけ書き出す（Chrome/Edge） |\n| すべてのファイルを保存 → .zipで保存 | 全メモを1つの.zipにまとめる。スマホでは共有シートが開くので、ファイルアプリやクラウドにそのまま送れる |\n\n- .mdや.txt、.zipを画面にドラッグして落としても追加できます\n- すでに同じ内容のメモがあるファイルは飛ばします。控えを読み直しても二重になりません\n- フォルダへの書き出し・読み込みは一回きりで、そのフォルダを保存先にはしません\n- スマホの「…」には「すべてをコピー」もあり、表示中のメモのMarkdownをまるごとクリップボードへ送れます\n\n## 保存先\n\n最初に開いたとき（Chrome/Edgeでパソコンに置いたHTMLを開いた場合）に、保存先を選ぶ画面が出ます。\n\n- ブラウザに保存：このブラウザの中に保存。ファイルは作らない。最後の変更から0.4秒後に自動保存\n- フォルダに保存：選んだフォルダに各メモを `タイトル.md` として保存。最後の変更から0.7秒後に書き戻し。最初の行を変えるとファイル名も追従、削除するとファイルも消える。フォルダに他のエディタで.mdを追加すると「再読み込み」で取り込む\n\nいまの保存先はサイドバー下に「ブラウザ（ローカルストレージ）」または「ローカルPC（フォルダ名）」と出ています。「保存先の切り替え」で変えられます。\n\n- ブラウザ → ローカルPC：フォルダを選ぶと、いまのメモをそのフォルダに書き出し、フォルダにある.mdも読み込みます\n- ローカルPC → ブラウザ：「切り替える」を押すと、以後はブラウザに保存します。メモはブラウザに残り、フォルダの.mdも消えません\n\nブラウザを開き直したときなどにフォルダへの許可が切れていると、再接続を促す画面が出ます。「接続する」で保存を再開します。「あとで」を選ぶとサイドバー下に「未接続」と出て、接続するまで変更はブラウザにだけ残ります（接続したときにフォルダへ反映します）。\n\nフォルダ保存はChrome/Edge限定で、Claude上の公開版・Firefox・Safari・スマホでは「保存先の切り替え」は出ません。ブラウザの閲覧データを消すとブラウザ内のメモは消えるので、大事なものはフォルダ保存か、「ファイル」→「すべてのファイルを保存」で控えを。\n\n**フォルダ保存中に食い違ったとき**：ブラウザ側と.mdファイルの両方が変わっていたら、更新が新しいほうを残し、負けたほうを「○○（ブラウザ側の写し）」「○○（フォルダ側の写し）」という別のメモにします。どちらの内容も消えません。\n\n## 困ったときは\n\n- 書式が効かない：`#` や `-` のあとに半角スペースが必要です\n- 表にならない：見出し行の次に `| --- | --- |` の区切り行が必要です。`|` や `-` が全角になっていないか確認してください\n- 「保存先の切り替え」が出ない：ChromeかEdgeで、パソコンに置いたHTMLを直接開いているか確認してください\n- フォントが違って見える：オフラインではWebフォントが読めず、端末の標準フォントで表示されます";
+const MANUAL_VER = 5;
+const SAMPLE = [
+  '# メモ帳へようこそ',
+  '',
+  '書いたMarkdownが、その場で見た目に変わります。行をクリックすると元のMarkdownが現れて、そのまま直せます。',
+  '',
+  '## 書き方',
+  '',
+  '- 行頭に `#` を置くと見出し',
+  '- `-` や `1.` で箇条書き（Tabで字下げ）',
+  '- [ ] チェックボックスは `- [ ]`',
+  '- [x] 四角をクリックで切り替え',
+  '- **太字** は `**` で囲む（Ctrl/⌘+B）',
+  '- *斜体* は `*` で囲む（Ctrl/⌘+I）',
+  '- `コード` はバッククォート（Ctrl/⌘+E）',
+  '- ~~取り消し線~~ は `~~`',
+  '- [リンク](https://example.com) は `[文字](URL)`',
+  '',
+  '> 引用は `>` から始めます。',
+  '',
+  '詳しい使い方は、左上の「？」で開く「メモ帳の使い方」にまとめてあります。',
+  '',
+  '| 記法 | 使いどころ |',
+  '| --- | --- |',
+  '| `\\|` で区切る | 表。行末でEnterすると次の行が始まる |',
+  '| `:---:` | 列の中央寄せ |',
+  '',
+  '```js',
+  '// コードブロックは ``` で囲みます',
+  'console.log("hello");',
+  '```',
+  '',
+  '---',
+  '',
+  'Enterで次の行、行頭でBackspaceを押すと前の行につながります。書いた内容はこのブラウザに自動保存され、右上からMarkdownとして取り出せます。',
+].join('\n');
+
+/* ---------- state ---------- */
+let notes = [], currentId = null, confirmId = null, editingEl = null, saveTimer = null, downloads = null;
+const cur = () => notes.find(n => n.id === currentId);
+const sortedNotes = () => [...notes].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || b.updated - a.updated);
+const topOrder = () => notes.length ? Math.min(...notes.map(n => n.order ?? 0)) - 1 : 0;
+const isLocked = () => !!(cur() && cur().locked);
+function lockedToast() { toast('このメモはロック中です。右上の鍵で解除できます'); }
+const newNote = (md = '') => ({ id: 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), blocks: splitToBlocks(md), updated: Date.now(), order: topOrder() });
+
+let firstRun = false;
+function load() {
+  try {
+    const j = JSON.parse(localStorage.getItem(KEY));
+    if (j && Array.isArray(j.notes) && j.notes.length) { notes = j.notes; currentId = j.currentId; }
+  } catch (e) {}
+  if (notes.some(n => n.order == null)) [...notes].sort((a, b) => b.updated - a.updated).forEach((n, i) => { if (n.order == null) n.order = i; });
+  // regroup blocks saved by older versions (e.g. table rows stored one per block)
+  for (const n of notes) if (Array.isArray(n.blocks)) n.blocks = splitToBlocks(n.blocks.join('\n'));
+  if (!notes.length) {
+    const n = newNote(SAMPLE); n.sample = true; n.updated = Date.now();
+    const m = newNote(MANUAL); m.manual = true; m.locked = true; m.manualVer = MANUAL_VER; m.updated = Date.now() - 1000;
+    notes = [n, m]; currentId = n.id; firstRun = true;
+  }
+  // a bundled manual that is still locked (untouched) is refreshed when this file ships a newer one
+  for (const m of notes) if (m.manual && m.locked && (m.manualVer || 0) < MANUAL_VER) { m.blocks = splitToBlocks(MANUAL); m.manualVer = MANUAL_VER; }
+  if (!cur()) currentId = notes[0].id;
+}
+function persist() { try { localStorage.setItem(KEY, JSON.stringify({ notes, currentId })); } catch (e) {} }
+function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(persist, 400); if (currentId) fsMark(currentId); }
+
+/* ---------- markdown ---------- */
+function splitToBlocks(md) {
+  const lines = md.replace(/\r\n?/g, '\n').split('\n'), out = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (/^```/.test(lines[i])) {
+      const buf = [lines[i]]; let j = i + 1;
+      while (j < lines.length) { buf.push(lines[j]); if (/^```\s*$/.test(lines[j])) break; j++; }
+      out.push(buf.join('\n')); i = j;
+    } else if (isRow(lines[i]) && i + 1 < lines.length && isSep(lines[i + 1])) {
+      const buf = [lines[i], lines[i + 1]]; let j = i + 2;
+      while (j < lines.length && isRow(lines[j])) { buf.push(lines[j]); j++; }
+      out.push(buf.join('\n')); i = j - 1;
+    } else out.push(lines[i]);
+  }
+  return out;
+}
+const isRow = line => /^\s*\|/.test(line);
+const isSep = line => /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/.test(line) && line.includes('-');
+function splitCells(line) {
+  let t = line.trim();
+  if (t.startsWith('|')) t = t.slice(1);
+  if (/(^|[^\\])\|$/.test(t)) t = t.slice(0, -1);
+  return t.split(/(?<!\\)\|/).map(c => c.replace(/\\\|/g, '|').trim());
+}
+function tableInfo(raw) {
+  const lines = raw.split('\n');
+  if (lines.length < 2 || !isRow(lines[0]) || !isSep(lines[1])) return null;
+  const header = splitCells(lines[0]);
+  const aligns = splitCells(lines[1]).map(c => c.startsWith(':') && c.endsWith(':') ? 'center' : c.endsWith(':') ? 'right' : c.startsWith(':') ? 'left' : '');
+  const rows = lines.slice(2).filter(l => l.trim() !== '').map(splitCells);
+  const cols = Math.max(header.length, ...rows.map(r => r.length));
+  const pad = r => { while (r.length < cols) r.push(''); return r; };
+  while (aligns.length < cols) aligns.push('');
+  return { type: 'table', header: pad(header), aligns, rows: rows.map(pad), cols, content: header.join(' '), prefixLen: 0 };
+}
+const dispWidth = s => { let w = 0; for (const ch of s) w += ch.codePointAt(0) > 0xFF ? 2 : 1; return w; };
+const padCell = (s, w, align) => { const gap = w - dispWidth(s); if (align === 'right') return ' '.repeat(gap) + s; if (align === 'center') { const l = Math.floor(gap / 2); return ' '.repeat(l) + s + ' '.repeat(gap - l); } return s + ' '.repeat(gap); };
+function formatTable(info) {
+  const escCell = c => c.replace(/\|/g, '\\|');
+  const all = [info.header, ...info.rows].map(r => r.map(escCell));
+  const widths = info.aligns.map((a, i) => Math.max(3, ...all.map(r => dispWidth(r[i]))));
+  const line = r => '| ' + r.map((c, i) => padCell(c, widths[i], info.aligns[i])).join(' | ') + ' |';
+  const sep = '| ' + widths.map((w, i) => { const a = info.aligns[i]; return (a === 'left' || a === 'center' ? ':' : '-') + '-'.repeat(w - 2) + (a === 'right' || a === 'center' ? ':' : '-'); }).join(' | ') + ' |';
+  return [line(all[0]), sep, ...all.slice(1).map(line)].join('\n');
+}
+// raw offset of the start of cell (r = line index, c = column)
+function cellOffset(raw, r, c) {
+  const lines = raw.split('\n'); let off = 0;
+  for (let i = 0; i < r && i < lines.length; i++) off += lines[i].length + 1;
+  const line = lines[r] || ''; let i = line.indexOf('|'); if (i < 0) return off;
+  for (let k = 0; k < c; k++) { let j = i + 1; while (j < line.length && !(line[j] === '|' && line[j - 1] !== '\\')) j++; if (j >= line.length) break; i = j; }
+  i++; while (line[i] === ' ') i++;
+  return off + i;
+}
+function blockInfo(raw) {
+  let m;
+  const tb = raw.includes('|') && raw.includes('\n') ? tableInfo(raw) : null;
+  if (tb) return tb;
+  if (/^```/.test(raw)) {
+    const lines = raw.split('\n');
+    const closed = lines.length > 1 && /^```\s*$/.test(lines[lines.length - 1]);
+    return { type: 'code', lang: lines[0].slice(3).trim(), code: lines.slice(1, closed ? -1 : undefined).join('\n'), closed, prefixLen: lines[0].length + 1 };
+  }
+  if ((m = raw.match(/^(#{1,6})\s+([\s\S]*)$/))) return { type: 'h', level: m[1].length, content: m[2], prefixLen: raw.length - m[2].length };
+  if (/^(-{3,}|\*{3,}|_{3,})\s*$/.test(raw)) return { type: 'hr', content: '', prefixLen: 0 };
+  if ((m = raw.match(/^>\s?([\s\S]*)$/))) return { type: 'quote', content: m[1], prefixLen: raw.length - m[1].length };
+  if ((m = raw.match(/^(\s*)[-*+]\s+\[([ xX])\]\s+([\s\S]*)$/))) return { type: 'task', indent: m[1].length, checked: m[2] !== ' ', content: m[3], prefixLen: raw.length - m[3].length };
+  if ((m = raw.match(/^(\s*)([-*+]\s+)([\s\S]*)$/))) return { type: 'ul', indent: m[1].length, marker: m[2], content: m[3], prefixLen: raw.length - m[3].length };
+  if ((m = raw.match(/^(\s*)(\d+)([.)]\s+)([\s\S]*)$/))) return { type: 'ol', indent: m[1].length, num: +m[2], delim: m[3], content: m[4], prefixLen: raw.length - m[4].length };
+  if (raw === '') return { type: 'empty', content: '', prefixLen: 0 };
+  return { type: 'p', content: raw, prefixLen: 0 };
+}
+const isList = info => info.type === 'ul' || info.type === 'ol' || info.type === 'task';
+
+function inline(text) {
+  const codes = [];
+  let s = esc(text).replace(/`([^`\n]+)`/g, (m, c) => { codes.push(c); return '\u0000' + (codes.length - 1) + '\u0000'; });
+  s = s.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>').replace(/__([^_\n]+?)__/g, '<strong>$1</strong>');
+  s = s.replace(/(^|[^*\w])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>');
+  s = s.replace(/(^|[^\w])_([^_\n]+?)_(?!\w)/g, '$1<em>$2</em>');
+  s = s.replace(/~~([^~\n]+?)~~/g, '<del>$1</del>');
+  s = s.replace(/\[([^\]\n]+)\]\(((?:https?:\/\/|mailto:)[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  s = s.replace(/\u0000(\d+)\u0000/g, (m, i) => '<code>' + codes[i] + '</code>');
+  return s.replace(/\n/g, '<br>');
+}
+function blockHTML(info) {
+  switch (info.type) {
+    case 'code': return '<pre><code>' + esc(info.code) + '</code></pre>';
+    case 'table': {
+      const cell = (tag, c, i) => '<' + tag + (info.aligns[i] ? ' style="text-align:' + info.aligns[i] + '"' : '') + '>' + inline(c) + '</' + tag + '>';
+      return '<div class="tbl"><table><thead><tr>' + info.header.map((c, i) => cell('th', c, i)).join('') + '</tr></thead><tbody>' +
+        info.rows.map(r => '<tr>' + r.map((c, i) => cell('td', c, i)).join('') + '</tr>').join('') + '</tbody></table></div>';
+    }
+    case 'h': return '<h' + info.level + '>' + inline(info.content) + '</h' + info.level + '>';
+    case 'hr': return '<hr>';
+    case 'quote': return '<blockquote>' + inline(info.content) + '</blockquote>';
+    case 'task': return '<span class="cb" role="checkbox" aria-checked="' + info.checked + '"></span><span class="txt">' + inline(info.content) + '</span>';
+    case 'ul': case 'ol': return '<span class="txt">' + inline(info.content) + '</span>';
+    case 'empty': return '';
+    default: return inline(info.content);
+  }
+}
+// map an offset in the rendered text back to an offset in the raw markdown
+function mapOffset(raw, info, vis) {
+  if (vis === Infinity) return raw.length;
+  let i = info.prefixLen;
+  if (info.type === 'code') return Math.min(i + vis, raw.length);
+  let v = 0;
+  while (i < raw.length && v < vis) {
+    const c = raw[i];
+    if ('*_`~['.includes(c)) { i++; continue; }
+    if (c === ']' && raw[i + 1] === '(') { const close = raw.indexOf(')', i); if (close > 0) { i = close + 1; continue; } }
+    i++; v++;
+  }
+  return i;
+}
+
+/* ---------- block elements ---------- */
+function applyClasses(el, info, editing) {
+  const t = info.type === 'h' ? 'h' + info.level : info.type;
+  el.className = 'block b-' + t + (isList(info) ? ' b-li' : '') + (info.checked ? ' done' : '') + (editing ? ' editing' : '');
+  el.style.setProperty('--indent', info.indent ? Math.floor(info.indent / 2) : 0);
+  if (info.type === 'ul') el.dataset.mark = '•';
+  else if (info.type === 'ol') el.dataset.mark = info.num + '.';
+  else delete el.dataset.mark;
+}
+function renderEl(el, raw) {
+  let info = blockInfo(raw);
+  if (info.type === 'table') { raw = formatTable(info); info = blockInfo(raw); }
+  el._raw = raw;
+  applyClasses(el, info, false);
+  el.innerHTML = blockHTML(info);
+  el.contentEditable = 'false';
+}
+function makeBlockEl(raw) {
+  const el = document.createElement('div');
+  el.dataset.ph = PLACEHOLDER;
+  el.spellcheck = false;
+  renderEl(el, raw);
+  return el;
+}
+function readRaw(el) {
+  let t = el.innerText.replace(/\u00a0/g, ' ');
+  if (el.lastChild && el.lastChild.nodeName === 'BR') t = t.replace(/\n$/, '');
+  return t;
+}
+function enterEdit(el, off) {
+  if (isLocked()) return;
+  if (bsel) { bsel = null; bselRender(); }
+  if (editingEl && editingEl !== el) leaveEdit(editingEl);
+  editingEl = el;
+  el.contentEditable = 'plaintext-only';
+  if (el.contentEditable !== 'plaintext-only') el.contentEditable = 'true';
+  el.textContent = el._raw; ensureTrailingBr(el);
+  applyClasses(el, blockInfo(el._raw), true);
+  el.focus({ preventScroll: true });
+  setCaret(el, off == null ? el._raw.length : Math.min(off, el._raw.length));
+  el.scrollIntoView({ block: 'nearest' });
+}
+function leaveEditWith(el, raw) {
+  // clear first: setting contentEditable=false blurs the element, which fires focusout
+  if (editingEl === el) editingEl = null;
+  renderEl(el, raw);
+}
+function leaveEdit(el) {
+  const before = el._raw, raw = readRaw(el);
+  leaveEditWith(el, raw);
+  syncBlocks(raw !== before ? 'type' : null);
+}
+
+/* ---------- undo / redo ---------- */
+const histories = {};
+function hist() { return histories[currentId] || (histories[currentId] = { stack: [], idx: -1 }); }
+function snapshot(kind) {
+  const bi = editingEl ? [...blocksEl.children].indexOf(editingEl) : null;
+  return { blocks: cur().blocks.slice(), bi, off: editingEl ? caretOffset(editingEl) : 0, kind, t: Date.now() };
+}
+function record(kind) {
+  const h = hist(), snap = snapshot(kind), last = h.stack[h.idx];
+  if (last && kind === 'type' && last.kind === 'type' && last.bi === snap.bi && snap.t - last.t < 800) { h.stack[h.idx] = snap; return; }
+  h.stack.length = h.idx + 1;
+  h.stack.push(snap);
+  if (h.stack.length > 200) h.stack.shift();
+  h.idx = h.stack.length - 1;
+  updateHistoryButtons();
+}
+function restore(snap) {
+  editingEl = null; find.peekEl = null; bsel = null;
+  const n = cur();
+  n.blocks = snap.blocks.slice(); n.updated = Date.now();
+  blocksEl.innerHTML = '';
+  for (const raw of n.blocks) blocksEl.append(makeBlockEl(raw));
+  if (!blocksEl.children.length) blocksEl.append(makeBlockEl(''));
+  renumber();
+  sourceEl.value = n.blocks.join('\n');
+  if (snap.bi != null && blocksEl.children[snap.bi] && !document.body.classList.contains('src')) enterEdit(blocksEl.children[snap.bi], snap.off);
+  updateTitle(); renderList(); scheduleSave(); updateHistoryButtons();
+  if (find.open) findRefresh(false);
+}
+function undo() { if (isLocked()) { lockedToast(); return; } const h = hist(); if (h.idx <= 0) return; if (editingEl) { h.stack[h.idx] = { ...h.stack[h.idx], off: caretOffset(editingEl) }; } h.idx--; restore(h.stack[h.idx]); }
+function redo() { if (isLocked()) { lockedToast(); return; } const h = hist(); if (h.idx >= h.stack.length - 1) return; h.idx++; restore(h.stack[h.idx]); }
+function updateHistoryButtons() { const h = hist(); $('#undo').disabled = h.idx <= 0; $('#redo').disabled = h.idx >= h.stack.length - 1; }
+$('#undo').addEventListener('mousedown', e => e.preventDefault());
+$('#redo').addEventListener('mousedown', e => e.preventDefault());
+$('#undo').addEventListener('click', undo);
+$('#redo').addEventListener('click', redo);
+document.addEventListener('keydown', e => {
+  if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (k === 'f' && e.shiftKey) { e.preventDefault(); if (document.body.classList.contains('side-hidden')) toggleSide(); sideEl.classList.add('open'); backdrop.classList.add('show'); gq.focus(); gq.select(); return; }
+  if (e.target === sourceEl) return; // textarea keeps its native undo and find
+  // Ctrl+A with no line open still selects the whole note (while editing, the blocks handler does it)
+  if (k === 'a' && !e.shiftKey && !editingEl && !bsel && !document.body.classList.contains('src') && (e.target === document.body || $('#editor').contains(e.target)) && !document.querySelector('.modal:not([hidden])')) { e.preventDefault(); bselStart(0, nBlocks() - 1); return; }
+  if (k === 'f' || k === 'h') { if (document.body.classList.contains('src')) return; e.preventDefault(); openFind(k === 'h'); return; }
+  if (k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+  else if (k === 'y') { e.preventDefault(); redo(); }
+});
+blocksEl.addEventListener('beforeinput', e => {
+  if (e.inputType === 'historyUndo') { e.preventDefault(); undo(); }
+  else if (e.inputType === 'historyRedo') { e.preventDefault(); redo(); }
+});
+
+// preview numbering follows CommonMark: the first item's number starts the list, the rest count up
+function renumber() {
+  const counters = {};
+  for (const el of blocksEl.children) {
+    const info = blockInfo(el._raw), d = info.indent ? Math.floor(info.indent / 2) : 0;
+    if (info.type === 'empty') continue;
+    if (!isList(info)) { for (const k in counters) delete counters[k]; continue; }
+    for (const k in counters) if (+k > d) delete counters[k];
+    if (info.type !== 'ol') { delete counters[d]; continue; }
+    counters[d] = counters[d] == null ? info.num : counters[d] + 1;
+    el.dataset.mark = counters[d] + '.';
+  }
+}
+function syncBlocks(kind = 'edit') {
+  const n = cur(); if (!n) return;
+  renumber();
+  n.blocks = [...blocksEl.children].map(b => b._raw);
+  n.updated = Date.now();
+  updateTitle(); renderList(); scheduleSave();
+  if (kind) record(kind);
+  if (find.open) findRefresh(false);
+}
+function renderNote() {
+  const n = cur();
+  editingEl = null; find.peekEl = null; bsel = null;
+  blocksEl.innerHTML = '';
+  for (const raw of n.blocks) blocksEl.append(makeBlockEl(raw));
+  if (!blocksEl.children.length) blocksEl.append(makeBlockEl(''));
+  renumber();
+  sourceEl.value = n.blocks.join('\n');
+  updateTitle(); renderLock();
+  if (hist().idx < 0) record('init');
+  updateHistoryButtons();
+  if (find.open) { find.idx = -1; findRefresh(false); }
+}
+
+/* ---------- caret helpers ---------- */
+function caretOffset(el) {
+  const sel = getSelection(); if (!sel.rangeCount) return 0;
+  const r = sel.getRangeAt(0); if (!el.contains(r.startContainer)) return 0;
+  const pre = document.createRange(); pre.selectNodeContents(el); pre.setEnd(r.startContainer, r.startOffset);
+  return pre.toString().length;
+}
+function setCaret(el, off) {
+  const sel = getSelection(), r = document.createRange();
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let n, acc = 0;
+  while ((n = walker.nextNode())) {
+    if (acc + n.length >= off) { r.setStart(n, off - acc); r.collapse(true); sel.removeAllRanges(); sel.addRange(r); return; }
+    acc += n.length;
+  }
+  r.selectNodeContents(el); r.collapse(false); sel.removeAllRanges(); sel.addRange(r);
+}
+function setSelectionRange(el, start, end) {
+  const sel = getSelection(), r = document.createRange();
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let n, acc = 0, sDone = false;
+  while ((n = walker.nextNode())) {
+    if (!sDone && acc + n.length >= start) { r.setStart(n, start - acc); sDone = true; }
+    if (sDone && acc + n.length >= end) { r.setEnd(n, end - acc); sel.removeAllRanges(); sel.addRange(r); return; }
+    acc += n.length;
+  }
+  setCaret(el, start);
+}
+function insertText(t) {
+  // manual insertion: execCommand turns newlines into <div> wrappers and may drop text
+  const sel = getSelection(); if (!sel.rangeCount) return;
+  const r = sel.getRangeAt(0); r.deleteContents();
+  const tn = document.createTextNode(t); r.insertNode(tn); r.setStartAfter(tn); r.collapse(true);
+  sel.removeAllRanges(); sel.addRange(r);
+  if (editingEl) { ensureTrailingBr(editingEl); editingEl.dispatchEvent(new Event('input', { bubbles: true })); }
+}
+// a text node ending in "\n" needs a <br> after it, otherwise the caret cannot sit on the new (empty) last line
+function ensureTrailingBr(el) {
+  let last = el.lastChild;
+  while (last && last.nodeType === 3 && last.data === '') { const prev = last.previousSibling; last.remove(); last = prev; }
+  if (last && last.nodeType === 3 && last.data.endsWith('\n')) el.append(document.createElement('br'));
+  else if (last && last.nodeName === 'BR' && !(last.previousSibling && last.previousSibling.nodeType === 3 && last.previousSibling.data.endsWith('\n'))) last.remove();
+}
+function focusOffset(el) {
+  const sel = getSelection(); if (!sel.focusNode || !el.contains(sel.focusNode)) return caretOffset(el);
+  const pre = document.createRange(); pre.selectNodeContents(el); pre.setEnd(sel.focusNode, sel.focusOffset); return pre.toString().length;
+}
+function caretLines(el, off, raw, atFocus) {
+  const res = { first: off === 0, last: off === raw.length };
+  if (!raw) return { first: true, last: true };
+  const sel = getSelection(); if (!sel.rangeCount) return res;
+  const r = document.createRange();
+  if (atFocus && sel.focusNode && el.contains(sel.focusNode)) { r.setStart(sel.focusNode, sel.focusOffset); r.collapse(true); }
+  else { r.setStart(sel.getRangeAt(0).startContainer, sel.getRangeAt(0).startOffset); r.collapse(true); }
+  const cr = r.getClientRects()[0] || r.getBoundingClientRect(); if (!cr || !cr.height) return res;
+  const cs = getComputedStyle(el), er = el.getBoundingClientRect();
+  const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.8;
+  return {
+    first: res.first || cr.top < er.top + parseFloat(cs.paddingTop) + lh * 0.75,
+    last: res.last || cr.bottom > er.bottom - parseFloat(cs.paddingBottom) - lh * 0.75,
+  };
+}
+function pointRange(x, y) {
+  if (document.caretPositionFromPoint) { const p = document.caretPositionFromPoint(x, y); return p && { startContainer: p.offsetNode, startOffset: p.offset }; }
+  return document.caretRangeFromPoint ? document.caretRangeFromPoint(x, y) : null;
+}
+
+/* ---------- editing operations ---------- */
+function splitBlock(el, raw, off, info) {
+  const before = raw.slice(0, off), after = raw.slice(off);
+  let newRaw = after, caret = 0;
+  if (isList(info)) {
+    if (info.content.trim() === '' && after === '') {
+      el._raw = ''; el.textContent = ''; applyClasses(el, blockInfo(''), true); setCaret(el, 0); syncBlocks(); return;
+    }
+    if (off >= info.prefixLen) {
+      const ind = ' '.repeat(info.indent || 0);
+      const marker = info.type === 'ul' ? ind + info.marker : info.type === 'task' ? ind + '- [ ] ' : ind + (info.num + 1) + info.delim;
+      newRaw = marker + after; caret = marker.length;
+    }
+  }
+  leaveEditWith(el, before);
+  const ne = makeBlockEl(newRaw); el.after(ne);
+  enterEdit(ne, caret); syncBlocks();
+}
+function mergeWithPrev(el, prev, raw) {
+  const prevRaw = prev._raw;
+  el.remove(); editingEl = null;
+  prev._raw = prevRaw + raw;
+  enterEdit(prev, prevRaw.length); syncBlocks();
+}
+function mergeNext(el, raw) {
+  const next = el.nextElementSibling; if (!next) return;
+  el._raw = raw + next._raw; next.remove();
+  el.textContent = el._raw; applyClasses(el, blockInfo(el._raw), true); setCaret(el, raw.length); syncBlocks();
+}
+function wrapSel(el, m) {
+  const sel = getSelection(), text = sel.toString();
+  if (text) insertText(m + text + m);
+  else { insertText(m + m); setCaret(el, caretOffset(el) - m.length); }
+}
+function toggleTask(el) {
+  el._raw = el._raw.replace(/^(\s*[-*+]\s+\[)([ xX])(\])/, (m, a, b, c) => a + (b === ' ' ? 'x' : ' ') + c);
+  renderEl(el, el._raw); syncBlocks();
+}
+
+/* ---------- events: editor ---------- */
+blocksEl.addEventListener('mousedown', e => {
+  const el = e.target.closest('.block'); if (!el || !blocksEl.contains(el)) return;
+  if (isLocked()) { if (e.target.closest('.cb')) e.preventDefault(); if (e.detail === 1) lockedToast(); return; }
+  if (e.shiftKey) {
+    if (bsel) { e.preventDefault(); bsel.head = blockIdx(el); bselRender(); return; }
+    if (editingEl && editingEl !== el) { e.preventDefault(); bselStart(blockIdx(editingEl), blockIdx(el)); return; }
+  }
+  if (e.target.closest('.cb')) { e.preventDefault(); toggleTask(el); return; }
+  if (e.target.closest('a') && (e.metaKey || e.ctrlKey)) return;
+  if (el === editingEl) return;
+  e.preventDefault();
+  let vis = Infinity;
+  const cellEl = e.target.closest('td,th');
+  if (cellEl && el.classList.contains('b-table')) {
+    const tr = cellEl.parentElement, c = [...tr.children].indexOf(cellEl);
+    const r = tr.parentElement.tagName === 'THEAD' ? 0 : [...tr.parentElement.children].indexOf(tr) + 2;
+    enterEdit(el, cellOffset(el._raw, r, c)); return;
+  }
+  const r = pointRange(e.clientX, e.clientY);
+  if (r && r.startContainer && el.contains(r.startContainer)) {
+    const pre = document.createRange(); pre.selectNodeContents(el); pre.setEnd(r.startContainer, r.startOffset); vis = pre.toString().length;
+  }
+  if (el === find.peekEl) { find.peekEl = null; enterEdit(el, vis === Infinity ? el._raw.length : vis); return; }
+  enterEdit(el, mapOffset(el._raw, blockInfo(el._raw), vis));
+});
+blocksEl.addEventListener('click', e => {
+  const a = e.target.closest('a'); if (a && !(e.metaKey || e.ctrlKey)) e.preventDefault();
+});
+editorEl.addEventListener('mousedown', e => {
+  if (e.target !== editorEl && e.target !== pageEl && e.target !== blocksEl) return;
+  if (document.body.classList.contains('src') || isLocked()) return;
+  e.preventDefault();
+  const last = blocksEl.lastElementChild; if (last) enterEdit(last);
+});
+blocksEl.addEventListener('focusout', e => {
+  const el = e.target; if (el !== editingEl) return;
+  if (e.relatedTarget) { leaveEdit(el); return; }
+  // no new focus target: either the window went to the background (keep editing, focus comes back) or a click on something non-focusable
+  setTimeout(() => {
+    if (editingEl !== el) return;
+    if (document.activeElement === el && !document.hasFocus()) return; // window blur: stay in edit mode
+    if (document.activeElement !== el) leaveEdit(el);
+  }, 0);
+});
+blocksEl.addEventListener('input', () => {
+  const el = editingEl; if (!el) return;
+  el._raw = readRaw(el); applyClasses(el, blockInfo(el._raw), true); syncBlocks('type');
+});
+blocksEl.addEventListener('paste', e => {
+  const el = editingEl; if (!el) return;
+  e.preventDefault();
+  const text = (e.clipboardData.getData('text/plain') || '').replace(/\r\n?/g, '\n'); if (!text) return;
+  const info = blockInfo(readRaw(el));
+  if (!text.includes('\n') || info.type === 'code') { insertText(text); return; }
+  const raw = readRaw(el), off = caretOffset(el);
+  const parts = splitToBlocks(text);
+  parts[0] = raw.slice(0, off) + parts[0];
+  const li = parts.length - 1, caret = parts[li].length;
+  parts[li] += raw.slice(off);
+  leaveEditWith(el, parts[0]);
+  let ref = el;
+  for (let i = 1; i < parts.length; i++) { const ne = makeBlockEl(parts[i]); ref.after(ne); ref = ne; }
+  enterEdit(ref, caret); syncBlocks();
+});
+blocksEl.addEventListener('keydown', e => {
+  const el = editingEl; if (!el || !el.contains(e.target)) return;
+  if (e.isComposing) return;
+  const raw = readRaw(el), off = caretOffset(el), info = blockInfo(raw), collapsed = getSelection().isCollapsed;
+
+  if ((e.metaKey || e.ctrlKey) && !e.altKey) {
+    const k = e.key.toLowerCase(), m = { b: '**', i: '*', e: '`' }[k];
+    if (m) { e.preventDefault(); wrapSel(el, m); return; }
+    if (k === 'a') { e.preventDefault(); bselStart(0, nBlocks() - 1); return; }
+    if (k === 's') { e.preventDefault(); persist(); toast('保存しました'); return; }
+    return;
+  }
+  const lineStart = raw.lastIndexOf('\n', off - 1) + 1, lineEndIdx = raw.indexOf('\n', off), lineEnd = lineEndIdx < 0 ? raw.length : lineEndIdx;
+  const curLine = raw.slice(lineStart, lineEnd), lineNo = raw.slice(0, lineStart).split('\n').length - 1;
+  const lines = raw.split('\n');
+  if (e.key === 'Enter' && !e.shiftKey && raw.includes('|')) {
+    // a row holding only "|" (the auto-inserted start of a new row): drop it and leave the table, like an empty list item
+    if (/^\s*\|\s*$/.test(curLine) && lineNo > 0 && lineNo === lines.length - 1 && isRow(lines[lineNo - 1])) {
+      e.preventDefault();
+      leaveEditWith(el, raw.slice(0, lineStart - 1));
+      const ne = makeBlockEl(''); el.after(ne); enterEdit(ne, 0); syncBlocks(); return;
+    }
+    if (isRow(curLine)) {
+      e.preventDefault();
+      const close = /\|\s*$/.test(curLine) ? '' : (curLine.endsWith(' ') ? '|' : ' |');
+      setCaret(el, lineEnd);
+      if (lineNo === 0 && !(lines[1] && isSep(lines[1]))) {
+        const n = splitCells(curLine + close).length;
+        insertText(close + '\n|' + ' --- |'.repeat(n) + '\n| ');
+      } else insertText(close + '\n| ');
+      return;
+    }
+    if (curLine.trim() === '' && lineNo > 0 && isRow(lines[lineNo - 1]) && lineNo === lines.length - 1) {
+      e.preventDefault();
+      leaveEditWith(el, raw.slice(0, lineStart - 1));
+      const ne = makeBlockEl(''); el.after(ne); enterEdit(ne, 0); syncBlocks(); return;
+    }
+  }
+  if (e.key === 'Tab' && isRow(curLine) && (lineNo > 0 || lines.length > 1)) {
+    e.preventDefault();
+    if (e.shiftKey) {
+      let i = off - 1; while (i > lineStart && !(raw[i] === '|' && raw[i - 1] !== '\\' && !/^\s*$/.test(raw.slice(i + 1, off)))) i--;
+      let j = i - 1; while (j > lineStart && !(raw[j] === '|' && raw[j - 1] !== '\\')) j--;
+      if (raw[j] === '|') { j++; while (raw[j] === ' ') j++; setCaret(el, j); }
+    } else {
+      let i = off; while (i < lineEnd && !(raw[i] === '|' && raw[i - 1] !== '\\')) i++;
+      if (i < lineEnd) { i++; while (raw[i] === ' ') i++; if (i >= lineEnd) { setCaret(el, lineEnd); insertText(' |'); setCaret(el, lineEnd + 1); } else setCaret(el, i); }
+      else { setCaret(el, lineEnd); insertText(' |'); }
+    }
+    return;
+  }
+  if (e.key === 'Enter') {
+    if (e.shiftKey || (info.type === 'code' && (!info.closed || off < raw.length))) { e.preventDefault(); insertText('\n'); return; }
+    e.preventDefault(); splitBlock(el, raw, off, info); return;
+  }
+  if (e.key === 'Backspace' && off === 0 && collapsed) {
+    const prev = el.previousElementSibling; if (!prev) return;
+    e.preventDefault(); mergeWithPrev(el, prev, raw); return;
+  }
+  if (e.key === 'Delete' && off === raw.length && collapsed && el.nextElementSibling) { e.preventDefault(); mergeNext(el, raw); return; }
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    if (isList(info)) {
+      let next = raw, delta = 0;
+      if (e.shiftKey) { if (raw.startsWith('  ')) { next = raw.slice(2); delta = -2; } }
+      else { next = '  ' + raw; delta = 2; }
+      if (info.type === 'ol' && next !== raw) {
+        // renumber: 1 when nesting deeper, otherwise continue the list at the new level
+        const ni = blockInfo(next); let num = 1;
+        if (e.shiftKey) {
+          for (let p = el.previousElementSibling; p; p = p.previousElementSibling) {
+            const pi = blockInfo(p._raw);
+            if (pi.type === 'empty') continue;
+            if (!isList(pi) || (pi.indent || 0) < (ni.indent || 0)) break;
+            if ((pi.indent || 0) === (ni.indent || 0)) { num = pi.type === 'ol' ? pi.num + 1 : 1; break; }
+          }
+        }
+        const numStart = ni.indent || 0, numLen = String(ni.num).length;
+        next = next.slice(0, numStart) + num + next.slice(numStart + numLen);
+        delta += String(num).length - numLen;
+      }
+      el._raw = next; el.textContent = next; setCaret(el, Math.max(0, off + delta));
+      applyClasses(el, blockInfo(el._raw), true); syncBlocks();
+    } else insertText('  ');
+    return;
+  }
+  if (e.key === 'Escape') { el.blur(); return; }
+  if (e.key === 'ArrowLeft' && !e.shiftKey && collapsed && off === 0 && el.previousElementSibling) { e.preventDefault(); enterEdit(el.previousElementSibling); return; }
+  if (e.key === 'ArrowRight' && !e.shiftKey && collapsed && off === raw.length && el.nextElementSibling) { e.preventDefault(); enterEdit(el.nextElementSibling, 0); return; }
+  if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && e.shiftKey && e.altKey) { e.preventDefault(); moveBlocks(e.key === 'ArrowDown' ? 1 : -1); return; }
+  if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && e.shiftKey && !e.altKey) {
+    const idx = [...blocksEl.children].indexOf(el), pos = caretLines(el, focusOffset(el), raw, true);
+    if (e.key === 'ArrowDown' && pos.last) { e.preventDefault(); bselStart(idx, idx + 1); }
+    if (e.key === 'ArrowUp' && pos.first) { e.preventDefault(); bselStart(idx, idx - 1); }
+    return;
+  }
+  if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !e.shiftKey && collapsed) {
+    const pos = caretLines(el, off, raw);
+    if (e.key === 'ArrowUp' && pos.first && el.previousElementSibling) { e.preventDefault(); enterEdit(el.previousElementSibling); }
+    if (e.key === 'ArrowDown' && pos.last && el.nextElementSibling) { e.preventDefault(); enterEdit(el.nextElementSibling, 0); }
+  }
+});
+
+/* ---------- line-wise (block) selection: Shift+↑/↓ ---------- */
+let bsel = null;
+const nBlocks = () => blocksEl.children.length;
+const bselRange = () => bsel ? [Math.min(bsel.anchor, bsel.head), Math.max(bsel.anchor, bsel.head)] : null;
+function bselRender() {
+  const r = bselRange();
+  [...blocksEl.children].forEach((el, i) => el.classList.toggle('bsel', !!r && i >= r[0] && i <= r[1]));
+  if (r) { const h = blocksEl.children[bsel.head]; if (h) h.scrollIntoView({ block: 'nearest' }); getSelection().removeAllRanges(); }
+}
+function bselStart(anchor, head) {
+  if (editingEl) leaveEdit(editingEl);
+  bsel = { anchor, head: Math.max(0, Math.min(nBlocks() - 1, head)) };
+  bselRender();
+}
+function bselClear() { if (!bsel) return; bsel = null; bselRender(); }
+const bselText = () => { const [a, b] = bselRange(); return [...blocksEl.children].slice(a, b + 1).map(el => el._raw).join('\n'); };
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); }
+  catch (e) { const ta = document.createElement('textarea'); ta.value = t; document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+}
+// remove the selected blocks; with `replace`, leave one empty block in their place and start editing it
+function bselDelete(replace) {
+  if (isLocked()) { lockedToast(); return; } // a locked note can be selected (Ctrl+A) and copied, not changed
+  const [a, b] = bselRange();
+  [...blocksEl.children].slice(a, b + 1).forEach(el => el.remove());
+  bsel = null; find.peekEl = null;
+  let target;
+  if (replace || !nBlocks()) { target = makeBlockEl(''); const at = blocksEl.children[a]; at ? at.before(target) : blocksEl.append(target); }
+  else target = blocksEl.children[a] || blocksEl.lastElementChild;
+  bselRender(); enterEdit(target, 0); syncBlocks('edit');
+}
+const blockIdx = el => [...blocksEl.children].indexOf(el);
+// move the editing block, or the selected range, up/down by one (Alt+Shift+↑/↓)
+function moveBlocks(dir) {
+  if (isLocked()) { lockedToast(); return; }
+  if (bsel) {
+    const [a, b] = bselRange(), kids = blocksEl.children;
+    if (dir < 0 && a > 0) kids[b].after(kids[a - 1]);
+    else if (dir > 0 && b < kids.length - 1) kids[a].before(kids[b + 1]);
+    else return;
+    bsel.anchor += dir; bsel.head += dir; bselRender(); syncBlocks('edit'); return;
+  }
+  const el = editingEl; if (!el) return;
+  const other = dir < 0 ? el.previousElementSibling : el.nextElementSibling; if (!other) return;
+  const off = caretOffset(el); leaveEdit(el);
+  dir < 0 ? other.before(el) : other.after(el);
+  enterEdit(el, off); syncBlocks('edit');
+}
+// indent / outdent every list item in the selected range (Tab / Shift+Tab)
+function indentBlocks(dir) {
+  if (isLocked()) { lockedToast(); return; }
+  const [a, b] = bselRange();
+  [...blocksEl.children].slice(a, b + 1).forEach(el => {
+    const raw = el._raw;
+    if (raw === '') return; // leave blank lines alone
+    if (dir > 0) renderEl(el, '  ' + raw);
+    else if (raw.startsWith('  ')) renderEl(el, raw.slice(2));
+    else if (raw.startsWith(' ')) renderEl(el, raw.slice(1));
+  });
+  bselRender(); syncBlocks('edit');
+}
+let mouseDownIdx = null;
+blocksEl.addEventListener('mousemove', e => {
+  if (e.buttons !== 1 || mouseDownIdx == null || isLocked()) return;
+  const el = e.target.closest('.block'); if (!el || !blocksEl.contains(el)) return;
+  const i = blockIdx(el);
+  if (!bsel) { if (i !== mouseDownIdx) { bselStart(mouseDownIdx, i); document.body.classList.add('bselecting'); } }
+  else if (bsel.head !== i) { bsel.head = i; bselRender(); }
+});
+document.addEventListener('mouseup', () => { mouseDownIdx = null; document.body.classList.remove('bselecting'); });
+document.addEventListener('keydown', e => {
+  if (!bsel) return;
+  const t = e.target; if (t === gq || t === fq || t === fr || t === sourceEl || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA') return;
+  const k = e.key;
+  if (e.metaKey || e.ctrlKey) {
+    const kk = k.toLowerCase();
+    if (kk === 'c') { e.preventDefault(); copyText(bselText()); toast('コピーしました'); return; }
+    if (kk === 'x') { e.preventDefault(); copyText(bselText()); bselDelete(false); return; }
+    if (kk === 'a') { e.preventDefault(); bsel = { anchor: 0, head: nBlocks() - 1 }; bselRender(); return; }
+    if (kk === 'z' || kk === 'y') { bselClear(); return; } // the undo handler takes it from here
+    return;
+  }
+  if (k === 'ArrowDown' || k === 'ArrowUp') {
+    e.preventDefault(); const d = k === 'ArrowDown' ? 1 : -1;
+    if (e.altKey && e.shiftKey) { moveBlocks(d); return; }
+    if (e.shiftKey) { bsel.head = Math.max(0, Math.min(nBlocks() - 1, bsel.head + d)); bselRender(); }
+    else { const [a, b] = bselRange(), el = blocksEl.children[d > 0 ? b : a]; bselClear(); enterEdit(el, d > 0 ? undefined : 0); }
+    return;
+  }
+  if ((k === 'ArrowLeft' || k === 'ArrowRight') && e.altKey && e.shiftKey) { e.preventDefault(); indentBlocks(k === 'ArrowRight' ? 1 : -1); return; }
+  if (k === 'ArrowLeft' || k === 'ArrowRight') { e.preventDefault(); const [a, b] = bselRange(), el = blocksEl.children[k === 'ArrowLeft' ? a : b]; bselClear(); enterEdit(el, k === 'ArrowLeft' ? 0 : undefined); return; }
+  if (k === 'Escape') { e.preventDefault(); const el = blocksEl.children[bsel.head]; bselClear(); enterEdit(el); return; }
+  if (k === 'Backspace' || k === 'Delete') { e.preventDefault(); bselDelete(false); return; }
+  if (k === 'Enter') { e.preventDefault(); bselDelete(true); return; }
+  if (k === 'Tab') { e.preventDefault(); indentBlocks(e.shiftKey ? -1 : 1); return; }
+  if (k.startsWith('F') && k.length > 1 || ['Shift', 'Control', 'Meta', 'Alt', 'CapsLock', 'Home', 'End', 'PageUp', 'PageDown'].includes(k)) { if (k === 'Tab') e.preventDefault(); return; }
+  if (k.length === 1 || k === 'Process' || e.isComposing) bselDelete(true); // the keystroke then lands in the new empty block
+}, true);
+blocksEl.addEventListener('mousedown', e => {
+  const el = e.target.closest('.block'); mouseDownIdx = el && blocksEl.contains(el) && e.button === 0 ? blockIdx(el) : null;
+  if (!e.shiftKey) bselClear();
+}, true);
+
+/* ---------- search & replace ---------- */
+const escRe = q => q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function buildRegex(q, cs, useRe) {
+  if (!q || q.length > 300) return null;
+  try { return new RegExp(useRe ? q : escRe(q), 'g' + (cs ? '' : 'i')); } catch (e) { return 'bad'; }
+}
+function matchesIn(raw, re, limit = 2000) {
+  const out = []; re.lastIndex = 0; let m; const t0 = performance.now();
+  while ((m = re.exec(raw))) {
+    out.push({ start: m.index, end: m.index + m[0].length });
+    if (m[0] === '') re.lastIndex++;
+    if (out.length >= limit || performance.now() - t0 > 150) break;
+  }
+  return out;
+}
+const find = { open: false, q: '', r: '', cs: false, re: false, matches: [], idx: -1 };
+const fbar = $('#findbar'), fq = $('#fq'), fr = $('#fr'), fcnt = $('#fcnt');
+function openFind(withReplace) {
+  find.open = true; fbar.hidden = false; $('#frow').hidden = !withReplace; $('#frepToggle').classList.toggle('on', withReplace);
+  const sel = getSelection().toString();
+  if (sel && !sel.includes('\n') && sel.length < 100) { fq.value = sel; find.q = sel; }
+  fq.focus(); fq.select();
+  findRefresh(true);
+}
+function unpeek() {
+  const el = find.peekEl; find.peekEl = null;
+  if (el && el.isConnected && el !== editingEl) renderEl(el, el._raw);
+}
+function closeFind() {
+  find.open = false; fbar.hidden = true;
+  const m = find.matches[find.idx], el = find.peekEl;
+  find.matches = []; find.idx = -1; unpeek();
+  for (const b of blocksEl.children) b.classList.remove('hit');
+  if (el && el.isConnected && m) { enterEdit(el, m.start); setSelectionRange(el, m.start, m.end); }
+}
+function findRefresh(jump) {
+  if (!find.open) return;
+  const re = buildRegex(find.q, find.cs, find.re);
+  fq.classList.toggle('bad', re === 'bad');
+  find.matches = [];
+  if (re && re !== 'bad') cur().blocks.forEach((raw, bi) => { for (const m of matchesIn(raw, re)) find.matches.push({ bi, ...m }); });
+  [...blocksEl.children].forEach((el, bi) => el.classList.toggle('hit', find.matches.some(m => m.bi === bi)));
+  if (!find.matches.length) {
+    find.idx = -1; unpeek();
+    fcnt.textContent = re === 'bad' ? '無効' : find.q ? '0件' : ''; fcnt.classList.toggle('none', !!find.q && re !== 'bad'); return;
+  }
+  fcnt.classList.remove('none');
+  if (find.idx < 0 || find.idx >= find.matches.length) find.idx = 0;
+  if (jump || find.peekEl) findGo(find.idx); else fcnt.textContent = (find.idx + 1) + '/' + find.matches.length;
+}
+// show the current match: the block displays its raw markdown with the hit marked, without taking focus
+function findGo(i) {
+  if (!find.matches.length) return;
+  find.idx = (i + find.matches.length) % find.matches.length;
+  const m = find.matches[find.idx], el = blocksEl.children[m.bi]; if (!el) return;
+  fcnt.textContent = (find.idx + 1) + '/' + find.matches.length;
+  if (find.peekEl && find.peekEl !== el) unpeek();
+  if (editingEl === el) leaveEdit(el);
+  const raw = el._raw;
+  applyClasses(el, blockInfo(raw), true); el.classList.add('peek', 'hit');
+  el.innerHTML = esc(raw.slice(0, m.start)) + '<mark class="fm">' + esc(raw.slice(m.start, m.end)) + '</mark>' + esc(raw.slice(m.end));
+  el.contentEditable = 'false'; find.peekEl = el;
+  el.scrollIntoView({ block: 'nearest' });
+}
+function findNext(d) {
+  if (!find.matches.length) { findRefresh(true); return; }
+  findGo(find.idx < 0 ? (d > 0 ? 0 : -1) : find.idx + d);
+}
+function replaceOne() {
+  if (isLocked()) { lockedToast(); return; }
+  const re = buildRegex(find.q, find.cs, find.re); if (!re || re === 'bad' || !find.matches.length) return;
+  if (find.idx < 0) find.idx = 0;
+  const m = find.matches[find.idx], el = blocksEl.children[m.bi]; if (!el) return;
+  if (editingEl === el) leaveEdit(el);
+  const raw = el._raw, hit = raw.slice(m.start, m.end);
+  const single = new RegExp(re.source, re.flags.replace('g', ''));
+  el._raw = raw.slice(0, m.start) + hit.replace(single, find.r) + raw.slice(m.end);
+  if (find.peekEl === el) find.peekEl = null;
+  renderEl(el, el._raw);
+  const keep = find.idx;
+  syncBlocks('edit');           // refreshes matches; the replaced one drops out, so `keep` now points at the next
+  if (find.matches.length) findGo(Math.min(keep, find.matches.length - 1));
+}
+function replaceAll() {
+  if (isLocked()) { lockedToast(); return; }
+  const re = buildRegex(find.q, find.cs, find.re); if (!re || re === 'bad' || !find.matches.length) return;
+  const n = find.matches.length;
+  if (editingEl) leaveEdit(editingEl);
+  unpeek();
+  for (const el of blocksEl.children) { re.lastIndex = 0; if (re.test(el._raw)) { re.lastIndex = 0; renderEl(el, el._raw.replace(re, find.r)); } }
+  syncBlocks('edit');
+  toast(n + '件を置換しました');
+}
+fq.addEventListener('input', () => { find.q = fq.value; find.idx = -1; findRefresh(true); });
+fr.addEventListener('input', () => { find.r = fr.value; });
+fq.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); findNext(e.shiftKey ? -1 : 1); } });
+fr.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); replaceOne(); } });
+fbar.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); closeFind(); } });
+for (const b of fbar.querySelectorAll('button')) b.addEventListener('mousedown', e => e.preventDefault());
+$('#fcs').addEventListener('click', () => { find.cs = !find.cs; $('#fcs').classList.toggle('on', find.cs); find.idx = -1; findRefresh(false); });
+$('#fre').addEventListener('click', () => { find.re = !find.re; $('#fre').classList.toggle('on', find.re); find.idx = -1; findRefresh(false); });
+$('#fprev').addEventListener('click', () => findNext(-1));
+$('#fnext').addEventListener('click', () => findNext(1));
+$('#fclose').addEventListener('click', closeFind);
+$('#findBtn').addEventListener('mousedown', e => e.preventDefault());
+$('#findBtn').addEventListener('click', () => { if (find.open && !fbar.hidden) { fq.focus(); fq.select(); } else openFind(false); });
+$('#frepToggle').addEventListener('click', () => { const row = $('#frow'); row.hidden = !row.hidden; $('#frepToggle').classList.toggle('on', !row.hidden); if (!row.hidden) fr.focus(); });
+$('#frep1').addEventListener('click', replaceOne);
+$('#frepall').addEventListener('click', replaceAll);
+
+/* ---------- global search (all notes) ---------- */
+const gsearch = { q: '', cs: false, re: false, expanded: false };
+const gq = $('#gq');
+gq.addEventListener('input', () => { gsearch.q = gq.value; gsearch.expanded = false; renderList(); });
+gq.addEventListener('keydown', e => { if (e.key === 'Escape') { gq.value = ''; gsearch.q = ''; renderList(); gq.blur(); } if (e.key === 'Enter') { const first = listEl.querySelector('.item .open'); if (first) first.click(); } });
+$('#gcs').addEventListener('click', () => { gsearch.cs = !gsearch.cs; $('#gcs').classList.toggle('on', gsearch.cs); renderList(); });
+$('#gre').addEventListener('click', () => { gsearch.re = !gsearch.re; $('#gre').classList.toggle('on', gsearch.re); renderList(); });
+function snippet(raw, m) {
+  const ls = raw.lastIndexOf('\n', m.start - 1) + 1, leIdx = raw.indexOf('\n', m.start), le = leIdx < 0 ? raw.length : leIdx;
+  const from = Math.max(ls, m.start - 24), to = Math.min(le, m.end + 40);
+  return (from > ls ? '…' : '') + esc(raw.slice(from, m.start)) + '<mark>' + esc(raw.slice(m.start, m.end)) + '</mark>' + esc(raw.slice(m.end, to)) + (to < le ? '…' : '');
+}
+function renderSearchList() {
+  const re = buildRegex(gsearch.q, gsearch.cs, gsearch.re);
+  gq.classList.toggle('bad', re === 'bad');
+  listEl.innerHTML = '';
+  if (re === 'bad') { listEl.innerHTML = '<div class="empty">正規表現として正しくありません</div>'; return; }
+  const hits = [];
+  for (const n of sortedNotes()) {
+    let count = 0, first = null;
+    for (const raw of n.blocks) { const ms = matchesIn(raw, re, 500); if (ms.length) { count += ms.length; if (!first) first = { raw, m: ms[0] }; } }
+    if (count) hits.push({ n, count, first });
+  }
+  if (!hits.length) { listEl.innerHTML = '<div class="empty">一致するメモはありません</div>'; return; }
+  const LIMIT = 3, shown = gsearch.expanded ? hits : hits.slice(0, LIMIT);
+  for (const h of shown) {
+    const item = document.createElement('div');
+    item.className = 'item' + (h.n.id === currentId ? ' active' : ''); item.dataset.id = h.n.id;
+    item.innerHTML = '<button class="open"><span class="n">' + h.count + '</span><span class="t">' + (h.n.locked ? '<span class="lk">🔒</span>' : '') + esc(noteTitle(h.n)) + '</span><span class="snip">' + snippet(h.first.raw, h.first.m) + '</span></button>';
+    listEl.append(item);
+  }
+  if (hits.length > LIMIT) {
+    const b = document.createElement('button'); b.className = 'more';
+    b.textContent = gsearch.expanded ? '先頭の3件だけ表示' : 'さらに表示（残り' + (hits.length - LIMIT) + '件）';
+    b.addEventListener('click', () => { gsearch.expanded = !gsearch.expanded; renderList(); });
+    listEl.append(b);
+  }
+}
+
+/* ---------- source view ---------- */
+$('#toggleSrc').addEventListener('click', () => {
+  const on = !document.body.classList.contains('src');
+  if (on) {
+    if (editingEl) leaveEdit(editingEl);
+    if (find.open) { find.open = false; fbar.hidden = true; find.matches = []; find.idx = -1; unpeek(); for (const b of blocksEl.children) b.classList.remove('hit'); }
+    sourceEl.value = cur().blocks.join('\n');
+    document.body.classList.add('src'); $('#toggleSrc').classList.add('on'); $('#toggleSrc').textContent = '整形表示に戻す';
+    fitSource(); sourceEl.focus();
+  } else {
+    document.body.classList.remove('src'); $('#toggleSrc').classList.remove('on'); $('#toggleSrc').textContent = 'Markdownを表示';
+    renderNote();
+  }
+});
+function fitSource() { sourceEl.style.height = 'auto'; sourceEl.style.height = sourceEl.scrollHeight + 'px'; }
+sourceEl.addEventListener('input', () => {
+  fitSource();
+  const n = cur(); n.blocks = splitToBlocks(sourceEl.value); n.updated = Date.now();
+  updateTitle(); renderList(); scheduleSave(); record('type');
+});
+
+/* ---------- title, list, notes ---------- */
+function plain(raw) {
+  const info = blockInfo(raw);
+  return (info.content ?? info.code ?? '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '').trim();
+}
+function noteTitle(n) { for (const raw of n.blocks) { const t = plain(raw); if (t) return t.slice(0, 40); } return '無題のメモ'; }
+function updateTitle() { const n = cur(); titleEl.textContent = noteTitle(n); document.title = noteTitle(n) + ' — メモ帳'; }
+function fmtDate(ts) {
+  const d = new Date(ts), now = new Date();
+  if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+  if (d.getFullYear() === now.getFullYear()) return (d.getMonth() + 1) + '/' + d.getDate();
+  return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
+}
+function renderList() {
+  if (gsearch.q) { renderSearchList(); return; }
+  const sorted = sortedNotes();
+  listEl.innerHTML = '';
+  for (const n of sorted) {
+    const item = document.createElement('div');
+    item.className = 'item' + (n.id === currentId ? ' active' : '');
+    item.dataset.id = n.id; item.draggable = confirmId !== n.id;
+    if (confirmId === n.id) {
+      item.classList.add('confirm');
+      item.innerHTML = '<span class="t">このメモを削除しますか？元に戻せません。</span><span class="acts"><button class="btn danger" data-act="del">削除する</button><button class="btn" data-act="cancel">やめる</button></span>';
+    } else {
+      item.innerHTML = '<button class="open"><span class="t">' + (n.locked ? '<span class="lk">🔒</span>' : '') + esc(noteTitle(n)) + '</span><span class="d">' + fmtDate(n.updated) + '</span></button>' + (n.locked ? '' : '<button class="x" aria-label="このメモを削除">×</button>');
+    }
+    listEl.append(item);
+  }
+}
+listEl.addEventListener('click', e => {
+  const item = e.target.closest('.item'); if (!item) return;
+  const id = item.dataset.id, act = e.target.dataset.act;
+  if (e.target.closest('.x')) { const n = notes.find(x => x.id === id); if (n && n.locked) { toast('ロック中のメモは削除できません。解除してから削除してください'); return; } confirmId = id; renderList(); return; }
+  if (act === 'del') { deleteNote(id); return; }
+  if (act === 'cancel') { confirmId = null; renderList(); return; }
+  if (e.target.closest('.open')) {
+    openNote(id); closeSide();
+    if (gsearch.q) {
+      find.q = gsearch.q; fq.value = gsearch.q;
+      find.cs = gsearch.cs; $('#fcs').classList.toggle('on', find.cs);
+      find.re = gsearch.re; $('#fre').classList.toggle('on', find.re);
+      find.open = true; fbar.hidden = false; find.idx = -1; findRefresh(true);
+    }
+  }
+});
+let dragId = null, dropTarget = null;
+function dndClear() { for (const el of listEl.querySelectorAll('.drop-before,.drop-after,.dragging')) el.classList.remove('drop-before', 'drop-after', 'dragging'); dropTarget = null; }
+function dndMark(item, y) {
+  for (const el of listEl.querySelectorAll('.drop-before,.drop-after')) el.classList.remove('drop-before', 'drop-after');
+  dropTarget = null;
+  if (item && item.dataset.id !== dragId) {
+    const r = item.getBoundingClientRect(), before = y < r.top + r.height / 2;
+    item.classList.add(before ? 'drop-before' : 'drop-after'); dropTarget = { id: item.dataset.id, before };
+  }
+}
+function dndCommit() {
+  if (dropTarget) {
+    const arr = sortedNotes(), moving = arr.find(n => n.id === dragId);
+    const rest = arr.filter(n => n.id !== dragId);
+    let at = rest.findIndex(n => n.id === dropTarget.id); if (at < 0) at = rest.length; else if (!dropTarget.before) at++;
+    rest.splice(at, 0, moving);
+    rest.forEach((n, i) => n.order = i);
+    persist(); renderList();
+  }
+  dragId = null; dndClear();
+}
+listEl.addEventListener('dragstart', e => {
+  const item = e.target.closest('.item'); if (!item || gsearch.q || !item.draggable || touchDnd) { e.preventDefault(); return; }
+  dragId = item.dataset.id; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragId);
+  requestAnimationFrame(() => item.classList.add('dragging'));
+});
+listEl.addEventListener('dragover', e => {
+  if (!dragId || touchDnd) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  dndMark(e.target.closest('.item'), e.clientY);
+});
+listEl.addEventListener('drop', e => { if (!dragId || touchDnd) return; e.preventDefault(); dndCommit(); });
+listEl.addEventListener('dragend', () => { if (touchDnd) return; dragId = null; dndClear(); });
+// touch: long-press lifts the item, then drag; moving before the timer fires is a normal scroll
+let touchDnd = null;
+function touchDndEnd() { if (!touchDnd) return; clearTimeout(touchDnd.timer); cancelAnimationFrame(touchDnd.raf); listEl.classList.remove('touch-dragging'); touchDnd = null; }
+listEl.addEventListener('touchstart', e => {
+  touchDndEnd();
+  const item = e.target.closest('.item');
+  if (e.touches.length !== 1 || !item || gsearch.q || !item.draggable || e.target.closest('.x')) return;
+  const t = e.touches[0];
+  touchDnd = { x: t.clientX, y: t.clientY, active: false, raf: 0, timer: setTimeout(() => {
+    if (!touchDnd) return;
+    touchDnd.active = true; dragId = item.dataset.id; item.classList.add('dragging'); listEl.classList.add('touch-dragging');
+    if (navigator.vibrate) try { navigator.vibrate(15); } catch (_) {}
+    const tick = () => { // auto-scroll while the finger is near the top/bottom edge
+      if (!touchDnd || !touchDnd.active) return;
+      const r = listEl.getBoundingClientRect(), edge = 44;
+      const d = touchDnd.y < r.top + edge ? -(r.top + edge - touchDnd.y) : touchDnd.y > r.bottom - edge ? touchDnd.y - (r.bottom - edge) : 0;
+      if (d) { listEl.scrollTop += Math.max(-12, Math.min(12, d / 3)); dndMark(document.elementFromPoint(touchDnd.x, touchDnd.y)?.closest('#list .item'), touchDnd.y); }
+      touchDnd.raf = requestAnimationFrame(tick);
+    };
+    touchDnd.raf = requestAnimationFrame(tick);
+  }, 400) };
+}, { passive: true });
+listEl.addEventListener('touchmove', e => {
+  if (!touchDnd) return;
+  const t = e.touches[0];
+  if (!touchDnd.active) { if (Math.hypot(t.clientX - touchDnd.x, t.clientY - touchDnd.y) > 10) touchDndEnd(); return; }
+  e.preventDefault();
+  touchDnd.x = t.clientX; touchDnd.y = t.clientY;
+  dndMark(document.elementFromPoint(t.clientX, t.clientY)?.closest('#list .item'), t.clientY);
+}, { passive: false });
+listEl.addEventListener('touchend', e => {
+  if (!touchDnd) return;
+  const active = touchDnd.active; touchDndEnd();
+  if (active) { e.preventDefault(); dndCommit(); } // preventDefault also swallows the click that would open the note
+});
+listEl.addEventListener('touchcancel', () => { if (touchDnd && touchDnd.active) { dragId = null; dndClear(); } touchDndEnd(); });
+listEl.addEventListener('contextmenu', e => { if (touchDnd) e.preventDefault(); }); // long-press menu on Android
+function openNote(id) {
+  if (editingEl) leaveEdit(editingEl);
+  currentId = id; confirmId = null;
+  renderNote(); renderList(); persist();
+}
+function deleteNote(id) {
+  const gone = notes.find(n => n.id === id);
+  notes = notes.filter(n => n.id !== id); confirmId = null; delete histories[id];
+  if (gone && gone.file) fsRemove(gone.file);
+  if (!notes.length) notes.push(newNote(''));
+  if (currentId === id) currentId = sortedNotes()[0].id;
+  renderNote(); renderList(); persist();
+  toast('メモを削除しました');
+}
+$('#newNote').addEventListener('click', () => {
+  if (editingEl) leaveEdit(editingEl);
+  const n = newNote(''); notes.push(n); currentId = n.id; confirmId = null;
+  if (document.body.classList.contains('src')) $('#toggleSrc').click();
+  renderNote(); renderList(); persist(); closeSide();
+  enterEdit(blocksEl.firstElementChild, 0);
+});
+
+/* ---------- settings (fonts, size) ---------- */
+const SKEY = 'wysimd.settings';
+const BODY_FONTS = [
+  { id: 'plex', label: 'IBM Plex Sans JP（標準）', family: 'IBM Plex Sans JP', gf: 'IBM+Plex+Sans+JP:wght@400;500;600' },
+  { id: 'noto', label: 'Noto Sans JP（ゴシック）', family: 'Noto Sans JP', gf: 'Noto+Sans+JP:wght@400;500;700' },
+  { id: 'bizud', label: 'BIZ UDPゴシック（読みやすさ重視）', family: 'BIZ UDPGothic', gf: 'BIZ+UDPGothic:wght@400;700' },
+  { id: 'notoserif', label: 'Noto Serif JP（明朝）', family: 'Noto Serif JP', gf: 'Noto+Serif+JP:wght@400;500;700', serif: true },
+  { id: 'shippori', label: 'しっぽり明朝', family: 'Shippori Mincho', gf: 'Shippori+Mincho:wght@400;500;700', serif: true },
+  { id: 'system', label: '端末の標準フォント', family: '' },
+  { id: 'custom', label: 'その他（名前を入力）' },
+];
+const MONO_FONTS = [
+  { id: 'plexmono', label: 'IBM Plex Mono（標準）', family: 'IBM Plex Mono', gf: 'IBM+Plex+Mono:wght@400;500' },
+  { id: 'jetbrains', label: 'JetBrains Mono', family: 'JetBrains Mono', gf: 'JetBrains+Mono:wght@400;500' },
+  { id: 'sourcecode', label: 'Source Code Pro', family: 'Source Code Pro', gf: 'Source+Code+Pro:wght@400;500' },
+  { id: 'bizudmono', label: 'BIZ UDゴシック（日本語等幅）', family: 'BIZ UDGothic', gf: 'BIZ+UDGothic:wght@400;700' },
+  { id: 'system', label: '端末の等幅フォント', family: '' },
+  { id: 'custom', label: 'その他（名前を入力）' },
+];
+const DEFAULT_SETTINGS = { body: 'plex', bodyCustom: '', mono: 'plexmono', monoCustom: '', size: 16 };
+let settings = { ...DEFAULT_SETTINGS };
+try { Object.assign(settings, JSON.parse(localStorage.getItem(SKEY)) || {}); } catch (e) {}
+function saveSettings() { try { localStorage.setItem(SKEY, JSON.stringify(settings)); } catch (e) {} }
+const gfLoaded = new Set();
+function loadGoogleFont(spec) {
+  if (!spec || gfLoaded.has(spec)) return; gfLoaded.add(spec);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=' + spec + '&display=swap'; document.head.append(l);
+}
+function fontStack(list, id, custom, mono) {
+  const preset = list.find(f => f.id === id) || list[0];
+  const family = preset.id === 'custom' ? custom.trim() : preset.family;
+  if (preset.gf) loadGoogleFont(preset.gf);
+  else if (preset.id === 'custom' && family) loadGoogleFont(family.replace(/\s+/g, '+') + ':wght@400;500;600;700'); // harmless if the name is not on Google Fonts
+  const fb = mono ? 'ui-monospace,Menlo,Consolas,"BIZ UDGothic",monospace' : preset.serif ? '"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif' : '"Hiragino Sans","Yu Gothic","Noto Sans JP",system-ui,sans-serif';
+  return family ? '"' + family.replace(/"/g, '') + '",' + fb : (mono ? fb : 'system-ui,"Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif');
+}
+function applySettings() {
+  const r = document.documentElement.style;
+  r.setProperty('--font-body', fontStack(BODY_FONTS, settings.body, settings.bodyCustom, false));
+  r.setProperty('--font-mono', fontStack(MONO_FONTS, settings.mono, settings.monoCustom, true));
+  r.setProperty('--fs', settings.size + 'px');
+  if (document.body.classList.contains('src')) fitSource();
+}
+const settingsEl = $('#settings');
+function fillSelect(sel, list, val) { sel.innerHTML = list.map(f => '<option value="' + f.id + '"' + (f.id === val ? ' selected' : '') + '>' + f.label + '</option>').join(''); }
+function renderSettings() {
+  fillSelect($('#sBody'), BODY_FONTS, settings.body); fillSelect($('#sMono'), MONO_FONTS, settings.mono);
+  $('#sBodyCustomRow').hidden = settings.body !== 'custom'; $('#sMonoCustomRow').hidden = settings.mono !== 'custom';
+  $('#sBodyCustom').value = settings.bodyCustom; $('#sMonoCustom').value = settings.monoCustom;
+  $('#sSize').value = settings.size; $('#sSizeVal').textContent = settings.size + 'px';
+}
+$('#settingsBtn').addEventListener('click', () => { renderSettings(); settingsEl.hidden = false; closeSide(); });
+// hidden test panel: click the "設定" title 5 times
+let devClicks = 0, devTimer = null, devArmed = false;
+$('#settingsTitle').addEventListener('click', () => {
+  devClicks++; clearTimeout(devTimer); devTimer = setTimeout(() => devClicks = 0, 1500);
+  if (devClicks >= 5) {
+    devClicks = 0; const pnl = $('#devPanel'); pnl.hidden = !pnl.hidden;
+    if (!pnl.hidden) { let bytes = 0; try { for (const k of Object.keys(localStorage)) if (k.startsWith('wysimd')) bytes += (localStorage.getItem(k) || '').length * 2; } catch (e) {} $('#devInfo').textContent = 'メモ ' + notes.length + '件、ブラウザ内の使用量 約' + (bytes / 1024).toFixed(0) + 'KB' + (dirHandle ? '、フォルダ「' + dirHandle.name + '」に接続中' : ''); }
+  }
+});
+$('#devReset').addEventListener('click', async () => {
+  const b = $('#devReset');
+  if (!devArmed) { devArmed = true; b.textContent = '本当に消す（もう一度クリック）'; setTimeout(() => { devArmed = false; b.textContent = 'ブラウザ内の保存データをすべて消す'; }, 4000); return; }
+  clearTimeout(saveTimer); clearTimeout(fsTimer); fsDirty.clear(); dirHandle = null; pendingHandle = null;
+  window.removeEventListener('beforeunload', persist);
+  try { for (const k of Object.keys(localStorage)) if (k.startsWith('wysimd')) localStorage.removeItem(k); } catch (e) {}
+  await idb.del('dir');
+  location.reload();
+});
+$('#sClose').addEventListener('click', () => { settingsEl.hidden = true; });
+settingsEl.addEventListener('click', e => { if (e.target === settingsEl) settingsEl.hidden = true; });
+settingsEl.addEventListener('keydown', e => { if (e.key === 'Escape') settingsEl.hidden = true; });
+$('#sReset').addEventListener('click', () => { settings = { ...DEFAULT_SETTINGS }; saveSettings(); renderSettings(); applySettings(); });
+$('#sBody').addEventListener('change', e => { settings.body = e.target.value; $('#sBodyCustomRow').hidden = settings.body !== 'custom'; saveSettings(); applySettings(); if (settings.body === 'custom') $('#sBodyCustom').focus(); });
+$('#sMono').addEventListener('change', e => { settings.mono = e.target.value; $('#sMonoCustomRow').hidden = settings.mono !== 'custom'; saveSettings(); applySettings(); if (settings.mono === 'custom') $('#sMonoCustom').focus(); });
+$('#sBodyCustom').addEventListener('input', e => { settings.bodyCustom = e.target.value; saveSettings(); applySettings(); });
+$('#sMonoCustom').addEventListener('input', e => { settings.monoCustom = e.target.value; saveSettings(); applySettings(); });
+$('#sSize').addEventListener('input', e => { settings.size = +e.target.value; $('#sSizeVal').textContent = settings.size + 'px'; saveSettings(); applySettings(); });
+applySettings();
+
+/* ---------- lock & manual ---------- */
+function renderLock() {
+  const l = isLocked();
+  document.body.classList.toggle('locked', l);
+  const b = $('#lockBtn'); b.textContent = l ? '🔒 ロック中' : '🔓'; b.classList.toggle('locked', l); b.title = l ? 'ロックを解除' : 'このメモをロック（編集・削除できなくなる）';
+  sourceEl.readOnly = l;
+}
+$('#lockBtn').addEventListener('click', () => {
+  const n = cur(); if (!n) return;
+  n.locked = !n.locked;
+  if (n.locked) { if (editingEl) leaveEdit(editingEl); if (bsel) { bsel = null; bselRender(); } }
+  renderLock(); renderList(); persist();
+  toast(n.locked ? 'ロックしました' : 'ロックを解除しました');
+});
+$('#helpBtn').addEventListener('click', () => {
+  let m = notes.find(x => x.manual);
+  if (!m) { m = newNote(MANUAL); m.manual = true; m.locked = true; m.manualVer = MANUAL_VER; notes.push(m); toast('使い方のメモを追加しました'); }
+  if (document.body.classList.contains('src')) $('#toggleSrc').click();
+  openNote(m.id); closeSide();
+  blocksEl.scrollIntoView({ block: 'start' });
+});
+
+/* ---------- export ---------- */
+const currentMd = () => cur().blocks.join('\n');
+$('#copy').addEventListener('click', async () => {
+  if (editingEl) leaveEdit(editingEl);
+  const md = currentMd();
+  try { await navigator.clipboard.writeText(md); toast('Markdownをコピーしました'); }
+  catch (e) {
+    const ta = document.createElement('textarea'); ta.value = md; document.body.append(ta); ta.select();
+    const ok = document.execCommand('copy'); ta.remove(); toast(ok ? 'Markdownをコピーしました' : 'コピーできませんでした');
+  }
+});
+const IN_CLAUDE = !!(window.claude && typeof window.claude.use === 'function');
+$('#download').addEventListener('click', async () => {
+  if (editingEl) leaveEdit(editingEl);
+  const filename = noteTitle(cur()).replace(/[\\/:*?"<>|]/g, '_') + '.md', md = currentMd();
+  if (downloads) {
+    try { await downloads.save({ filename, data: md }); toast('保存しました'); }
+    catch (err) { if (err && err.code !== 'declined') toast('保存できませんでした'); }
+    return;
+  }
+  if (IN_CLAUDE) { toast('この環境ではダウンロードできません。Ctrl/⌘+Aで全体を選んでコピーしてください', 4000); return; }
+  try {
+    const url = URL.createObjectURL(new Blob([md], { type: 'text/markdown;charset=utf-8' }));
+    const a = document.createElement('a'); a.href = url; a.download = filename; document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    toast('「' + filename + '」をダウンロードしました');
+  } catch (e) { toast('保存できませんでした'); }
+});
+if (IN_CLAUDE) window.claude.use('downloads').then(d => { if (d) downloads = d; }).catch(() => {});
+
+/* ---------- import files ---------- */
+const TEXT_EXT = /\.(md|markdown|mdown|txt|text)$/i;
+const isTextFile = f => TEXT_EXT.test(f.name) || /^text\//.test(f.type);
+const isZipFile = f => /\.zip$/i.test(f.name) || f.type === 'application/zip';
+function decodeBytes(buf) {
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+  catch (e) { return new TextDecoder('shift_jis').decode(buf); }
+}
+async function decodeFile(f) { return decodeBytes(await f.arrayBuffer()); }
+// a dropped list may hold .md/.txt files and .zip archives: unpack the archives so both look the same
+async function collectImports(fileList) {
+  const files = []; let skipped = 0, badZip = 0;
+  for (const f of [...fileList]) {
+    if (isZipFile(f)) {
+      try { for (const e of await readZip(f)) { if (TEXT_EXT.test(e.name)) files.push(new File([e.data], e.name, { type: 'text/markdown' })); else skipped++; } }
+      catch (err) { console.error(err); badZip++; }
+    } else if (isTextFile(f)) files.push(f);
+    else skipped++;
+  }
+  return { files, skipped, badZip };
+}
+async function importFiles(fileList) {
+  const { files, skipped, badZip } = await collectImports(fileList);
+  files.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+  if (!files.length) { toast(badZip ? '.zip を読めませんでした' : 'テキストファイル（.md / .txt / .zip）のみ読み込めます'); return; }
+  if (editingEl) leaveEdit(editingEl);
+  const have = new Set(notes.map(n => n.blocks.join('\n')));
+  let first = null, added = 0, same = 0;
+  for (const f of [...files].reverse()) {
+    let md = (await decodeFile(f)).replace(/^\uFEFF/, '');
+    const base = f.name.replace(/\.[^.]+$/, '');
+    md = md.replace(/\r\n?/g, '\n');
+    if (!plainTitleOf(md)) md = '# ' + base + '\n\n' + md; // untitled file: use its name as heading
+    if (have.has(md)) { same++; continue; } // the very same text is already a note: a second copy helps no one
+    have.add(md);
+    const n = newNote(md); notes.push(n); first = n; fsMark(n.id); added++;
+  }
+  const tail = (skipped ? '（テキスト以外の' + skipped + '件は除外）' : '') + (same ? '（同じ内容の' + same + '件は省略）' : '') + (badZip ? '（読めない.zipが' + badZip + '件）' : '');
+  if (!added) { toast('追加するメモはありませんでした' + tail, 3000); return; }
+  currentId = first.id; confirmId = null;
+  if (document.body.classList.contains('src')) $('#toggleSrc').click();
+  renderNote(); renderList(); persist(); closeSide();
+  toast(added === 1 && !tail ? '「' + noteTitle(first) + '」を追加しました' : added + '件のメモを追加しました' + tail, tail ? 3000 : 1800);
+}
+function plainTitleOf(md) { for (const raw of splitToBlocks(md)) { const t = plain(raw); if (t) return t; } return ''; }
+// file menu: a dropdown under 「ファイル」 on wide screens, laid out flat inside the … menu on phones
+const fileMenu = $('#fileMenu'), fileBtn = $('#fileBtn');
+function closeFileMenu() { fileMenu.classList.remove('open'); fileBtn.setAttribute('aria-expanded', 'false'); }
+fileBtn.addEventListener('click', e => { e.stopPropagation(); const open = !fileMenu.classList.contains('open'); fileMenu.classList.toggle('open', open); fileBtn.setAttribute('aria-expanded', String(open)); });
+fileMenu.addEventListener('click', e => { if (e.target.closest('.btn')) closeFileMenu(); });
+document.addEventListener('click', e => { if (!$('#fwrap').contains(e.target)) closeFileMenu(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && fileMenu.classList.contains('open')) { closeFileMenu(); fileBtn.focus(); } });
+$('#openFile').addEventListener('click', () => $('#fileInput').click());
+$('#openZip').addEventListener('click', () => $('#zipInput').click());
+$('#openDir').addEventListener('click', () => importFromFolder());
+$('#exportDir').addEventListener('click', () => exportToFolder());
+$('#exportZip').addEventListener('click', () => exportZip());
+const moreMenu = $('#moreMenu'), moreBtn = $('#moreBtn');
+function closeMore() { moreMenu.classList.remove('open'); moreBtn.setAttribute('aria-expanded', 'false'); }
+moreBtn.addEventListener('click', e => { e.stopPropagation(); const open = !moreMenu.classList.contains('open'); moreMenu.classList.toggle('open', open); moreBtn.setAttribute('aria-expanded', String(open)); });
+moreMenu.addEventListener('click', () => closeMore());
+document.addEventListener('click', e => { if (!moreMenu.contains(e.target) && e.target !== moreBtn) closeMore(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMore(); });
+for (const inp of [$('#fileInput'), $('#zipInput')]) inp.addEventListener('change', e => { if (e.target.files.length) importFiles(e.target.files); e.target.value = ''; });
+let dragDepth = 0;
+const hasFiles = e => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+document.addEventListener('dragenter', e => { if (!hasFiles(e)) return; e.preventDefault(); dragDepth++; document.body.classList.add('dragging'); });
+document.addEventListener('dragover', e => { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+document.addEventListener('dragleave', e => { if (!hasFiles(e)) return; if (--dragDepth <= 0) { dragDepth = 0; document.body.classList.remove('dragging'); } });
+document.addEventListener('drop', e => { if (!hasFiles(e)) return; e.preventDefault(); dragDepth = 0; document.body.classList.remove('dragging'); importFiles(e.dataTransfer.files); });
+
+/* ---------- folder sync (File System Access API, Chrome/Edge, local page only) ---------- */
+const FS_OK = 'showDirectoryPicker' in window && window.self === window.top;
+let dirHandle = null, pendingHandle = null, fsDirty = new Set(), fsTimer = null, fsBusy = false;
+const fsEl = $('#fs');
+const idb = {
+  open: () => new Promise((res, rej) => { const r = indexedDB.open('wysimd', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }),
+  async get(k) { try { const db = await this.open(); return await new Promise((res, rej) => { const r = db.transaction('kv').objectStore('kv').get(k); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); } catch (e) { return undefined; } },
+  async set(k, v) { try { const db = await this.open(); await new Promise((res, rej) => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = () => rej(t.error); }); } catch (e) {} },
+  async del(k) { try { const db = await this.open(); await new Promise((res, rej) => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').delete(k); t.oncomplete = res; t.onerror = () => rej(t.error); }); } catch (e) {} },
+};
+// older Chrome/Edge (before 105) reject the `mode` option: fall back to a plain picker + explicit permission request
+async function pickDirectory() {
+  try { return await window.showDirectoryPicker({ mode: 'readwrite' }); }
+  catch (e) {
+    if (e && e.name === 'TypeError') { const h = await window.showDirectoryPicker(); if ((await h.requestPermission({ mode: 'readwrite' })) !== 'granted') throw Object.assign(new Error('permission'), { name: 'NotAllowedError' }); return h; }
+    throw e;
+  }
+}
+function fsError(err, what) {
+  if (!err || err.name === 'AbortError') return;
+  console.error(err);
+  const msg = err.name === 'NotAllowedError' ? 'フォルダへのアクセスが許可されませんでした' : err.name === 'SecurityError' ? 'この場所からはフォルダを開けません（ローカルに保存したHTMLをChrome/Edgeで直接開いてください）' : what + '（' + (err.name || 'Error') + (err.message ? ': ' + err.message : '') + '）';
+  toast(msg, 6000);
+}
+const safeName = t => (t.replace(/[\\/:*?"<>|\u0000-\u001f]/g, '').replace(/\s+/g, ' ').trim().slice(0, 60) || '無題のメモ');
+function fileNameFor(n) {
+  const base = safeName(noteTitle(n));
+  let name = base + '.md', k = 2;
+  while (notes.some(o => o !== n && o.file === name)) name = base + '-' + (k++) + '.md';
+  return name;
+}
+const shortName = (t, max = 18) => t.length > max ? t.slice(0, max - 1) + '…' : t;
+// the sidebar foot shows where notes are saved; changing it goes through fsDialog()
+function renderFs() {
+  let h = '<div class="lbl">保存先</div>';
+  if (dirHandle) {
+    h += '<div class="name" title="' + esc(dirHandle.name) + '"><span class="dot"></span><span class="nm">ローカルPC（' + esc(shortName(dirHandle.name)) + '）</span></div>'
+      + '<div class="acts"><button class="btn" data-act="reload">再読み込み</button><button class="btn" data-act="switch">保存先の切り替え</button></div>';
+  } else if (pendingHandle) {
+    h += '<div class="name" title="' + esc(pendingHandle.name) + '"><span class="dot off"></span><span class="nm">ローカルPC（' + esc(shortName(pendingHandle.name)) + '）</span><span class="st">未接続</span></div>'
+      + '<div class="acts"><button class="btn primary" data-act="reconnect">接続する</button><button class="btn" data-act="switch">保存先の切り替え</button></div>';
+  } else {
+    h += '<div class="name"><span class="dot"></span><span class="nm">ブラウザ（ローカルストレージ）</span></div>'
+      + (FS_OK ? '<div class="acts"><button class="btn" data-act="switch">保存先の切り替え</button></div>' : '');
+  }
+  fsEl.innerHTML = h;
+  fsEl.hidden = false;
+}
+async function fsReconnect() {
+  if (!pendingHandle) return;
+  try {
+    if ((await pendingHandle.requestPermission({ mode: 'readwrite' })) === 'granted') await fsConnect(pendingHandle);
+    else toast('フォルダへのアクセスが許可されませんでした');
+  } catch (err) { fsError(err, 'フォルダに接続できませんでした'); }
+}
+async function fsOff() {
+  dirHandle = null; pendingHandle = null; fsDirty.clear(); await idb.del('dir');
+  for (const n of notes) { delete n.file; delete n.fsMtime; }
+  persist(); renderFs(); toast('ブラウザに保存します（フォルダの .md はそのまま残っています）', 3000);
+}
+// one dialog for both "switch where notes are saved" and "reconnect to last folder"
+const fsDlg = $('#fsDlg');
+let fsDlgOk = null;
+function fsDialog(kind) {
+  const name = (dirHandle || pendingHandle || {}).name || '';
+  const d = {
+    toFolder: ['保存先の切り替え', 'ローカルPCのフォルダを選択してください。いまのメモはそのフォルダに .md として書き出し、フォルダにある .md も読み込みます。', 'フォルダを選択', async () => { try { const h = await pickDirectory(); await fsConnect(h); } catch (err) { fsError(err, 'フォルダを開けませんでした'); } }],
+    toBrowser: ['保存先の切り替え', 'ブラウザ（ローカルストレージ）に保存します。メモはブラウザに残り、「' + name + '」の .md ファイルも消えません。', '切り替える', fsOff],
+    reconnect: ['フォルダに再接続してください', '「' + name + '」に .md で保存していましたが、いまは接続が切れています。接続し直すまでフォルダには保存されず、変更はブラウザにだけ残ります（接続したときにフォルダへ反映します）。', '接続する', fsReconnect],
+  }[kind];
+  $('#fsDlgTitle').textContent = d[0]; $('#fsDlgMsg').textContent = d[1];
+  fsDlg.querySelector('[data-dlg=ok]').textContent = d[2];
+  fsDlg.querySelector('[data-dlg=cancel]').textContent = kind === 'reconnect' ? 'あとで' : 'キャンセル';
+  fsDlgOk = d[3]; fsDlg.hidden = false; fsDlg.querySelector('[data-dlg=ok]').focus();
+}
+fsDlg.addEventListener('click', e => {
+  const b = e.target.closest('[data-dlg]'); if (!b && e.target !== fsDlg) return;
+  fsDlg.hidden = true;
+  if (b && b.dataset.dlg === 'ok' && fsDlgOk) fsDlgOk(); // runs inside the click, so the folder picker / permission prompt is allowed
+});
+fsDlg.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); fsDlg.hidden = true; } });
+fsEl.addEventListener('click', async e => {
+  const act = e.target.dataset.act; if (!act) return;
+  if (act === 'switch') fsDialog(dirHandle || pendingHandle ? 'toBrowser' : 'toFolder');
+  else if (act === 'reconnect') fsReconnect();
+  else if (act === 'reload') { try { await fsSyncFromFolder(); toast('フォルダを読み直しました'); } catch (err) { fsError(err, 'フォルダを読めませんでした'); } }
+});
+async function fsConnect(h, fromSetup) {
+  dirHandle = h; pendingHandle = null;
+  await idb.set('dir', h);
+  renderFs();
+  await fsSyncFromFolder();
+  if (fromSetup && notes.some(n => !n.sample)) {
+    notes = notes.filter(n => !n.sample);
+    currentId = sortedNotes()[0].id;
+    renderNote(); renderList();
+  }
+  for (const n of notes) if (!n.file) fsMark(n.id);
+  await fsFlush();
+  toast('「' + h.name + '」に保存します');
+}
+// a side that loses a conflict is not thrown away: it stays as its own note, clearly labelled
+function keepLosingCopy(src, md, label) {
+  const n = newNote('# ' + noteTitle(src) + '（' + label + 'の写し）\n\n' + md);
+  n.updated = Date.now();
+  notes.push(n); fsMark(n.id);
+  return n;
+}
+async function fsSyncFromFolder() {
+  if (!dirHandle) return;
+  const seen = new Set(); let changedCurrent = false, added = 0, clashes = 0;
+  try {
+    for await (const [name, h] of dirHandle.entries()) {
+      if (h.kind !== 'file' || !/\.md$/i.test(name)) continue;
+      seen.add(name);
+      const file = await h.getFile();
+      let note = notes.find(n => n.file === name);
+      if (!note) {
+        // link by expected file name, then by identical content (e.g. reconnecting to the same folder)
+        note = notes.find(n => !n.file && fileNameFor(n) === name);
+        if (!note) { const txt = await file.text(); note = notes.find(n => !n.file && n.blocks.join('\n') === txt); if (!note) { const n = newNote(txt.replace(/^\uFEFF/, '')); n.file = name; n.fsMtime = file.lastModified; n.updated = file.lastModified; notes.push(n); added++; continue; } }
+        note.file = name;
+      }
+      if (file.lastModified > (note.fsMtime || 0)) {
+        const txt = (await file.text()).replace(/^\uFEFF/, '');
+        const mine = note.blocks.join('\n');
+        if (txt === mine) { note.fsMtime = file.lastModified; continue; }
+        // both sides moved since we last wrote this file: the newer one wins, the loser is kept as its own note
+        const mineChanged = (note.updated || 0) > (note.fsMtime || 0) || fsDirty.has(note.id);
+        if (mineChanged && (note.updated || 0) > file.lastModified) {
+          keepLosingCopy(note, txt, 'フォルダ側'); clashes++;
+          note.fsMtime = file.lastModified; fsMark(note.id); // ours is newer: write it back over the folder's
+        } else {
+          if (mineChanged) { keepLosingCopy(note, mine, 'ブラウザ側'); clashes++; fsDirty.delete(note.id); }
+          note.blocks = splitToBlocks(txt); note.updated = file.lastModified; note.fsMtime = file.lastModified;
+          delete histories[note.id];
+          if (note.id === currentId) changedCurrent = true;
+        }
+      }
+    }
+    for (const n of notes) if (n.file && !seen.has(n.file)) { delete n.file; delete n.fsMtime; }
+  } catch (err) { fsError(err, 'フォルダを読めませんでした'); return; }
+  if (changedCurrent) { if (editingEl) editingEl = null; renderNote(); }
+  renderList(); persist();
+  if (clashes) toast('フォルダとブラウザで' + clashes + '件が食い違いました。新しいほうを残し、もう一方を「…の写し」として別のメモにしました', 6000);
+  else if (added) toast(added + '件の .md を読み込みました');
+}
+function fsMark(id) { if (!dirHandle) return; fsDirty.add(id); clearTimeout(fsTimer); fsTimer = setTimeout(fsFlush, 700); }
+async function fsFlush() {
+  if (!dirHandle || fsBusy) return; fsBusy = true;
+  try {
+    for (const id of [...fsDirty]) {
+      fsDirty.delete(id);
+      const n = notes.find(x => x.id === id); if (!n) continue;
+      const md = n.blocks.join('\n');
+      if (!n.file && md.trim() === '') continue; // nothing to write yet
+      const name = fileNameFor(n);
+      const fh = await dirHandle.getFileHandle(name, { create: true });
+      const w = await fh.createWritable(); await w.write(md); await w.close();
+      if (n.file && n.file !== name) { try { await dirHandle.removeEntry(n.file); } catch (e) {} }
+      n.file = name; n.fsMtime = (await fh.getFile()).lastModified;
+    }
+    persist();
+  } catch (err) {
+    console.error(err);
+    if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) { pendingHandle = dirHandle; dirHandle = null; renderFs(); fsDialog('reconnect'); }
+    else fsError(err, 'フォルダに書き込めませんでした');
+  } finally { fsBusy = false; if (fsDirty.size && dirHandle) fsMark([...fsDirty][0]); }
+}
+async function fsRemove(name) { if (!dirHandle) return; try { await dirHandle.removeEntry(name); } catch (e) {} }
+
+/* ---------- backup: one-shot export / import, and a .zip for phones ---------- */
+// zip, written by hand: stored (uncompressed) entries only, which keeps this to a few dozen lines
+const CRC_TAB = (() => { const t = new Uint32Array(256); for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[i] = c >>> 0; } return t; })();
+function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC_TAB[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+const dosTime = d => ((d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1)) & 0xFFFF;
+const dosDate = d => (((Math.max(1980, d.getFullYear()) - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate()) & 0xFFFF;
+function makeZip(entries) {
+  const enc = new TextEncoder(), local = [], central = [];
+  let off = 0;
+  for (const e of entries) {
+    const nm = enc.encode(e.name), crc = crc32(e.data), t = dosTime(e.date), d = dosDate(e.date), len = e.data.length;
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true);
+    lh.setUint16(10, t, true); lh.setUint16(12, d, true);
+    lh.setUint32(14, crc, true); lh.setUint32(18, len, true); lh.setUint32(22, len, true);
+    lh.setUint16(26, nm.length, true); lh.setUint16(28, 0, true);
+    local.push(new Uint8Array(lh.buffer), nm, e.data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true);
+    ch.setUint16(12, t, true); ch.setUint16(14, d, true);
+    ch.setUint32(16, crc, true); ch.setUint32(20, len, true); ch.setUint32(24, len, true);
+    ch.setUint16(28, nm.length, true); ch.setUint32(42, off, true);
+    central.push(new Uint8Array(ch.buffer), nm);
+    off += 30 + nm.length + len;
+  }
+  const cdSize = central.reduce((s, a) => s + a.length, 0);
+  const eo = new DataView(new ArrayBuffer(22));
+  eo.setUint32(0, 0x06054b50, true); eo.setUint16(8, entries.length, true); eo.setUint16(10, entries.length, true);
+  eo.setUint32(12, cdSize, true); eo.setUint32(16, off, true);
+  return new Blob([...local, ...central, new Uint8Array(eo.buffer)], { type: 'application/zip' });
+}
+// read a zip by its central directory; stored entries are taken as-is, deflated ones go through DecompressionStream
+async function readZip(file) {
+  const buf = new Uint8Array(await file.arrayBuffer()), dv = new DataView(buf.buffer);
+  let p = -1;
+  for (let i = buf.length - 22; i >= 0 && i >= buf.length - 22 - 65535; i--) if (dv.getUint32(i, true) === 0x06054b50) { p = i; break; }
+  if (p < 0) throw new Error('not a zip');
+  const n = dv.getUint16(p + 10, true), out = [];
+  let off = dv.getUint32(p + 16, true);
+  for (let i = 0; i < n; i++) {
+    if (off + 46 > buf.length || dv.getUint32(off, true) !== 0x02014b50) break;
+    const method = dv.getUint16(off + 10, true), csize = dv.getUint32(off + 20, true);
+    const nl = dv.getUint16(off + 28, true), el = dv.getUint16(off + 30, true), cl = dv.getUint16(off + 32, true);
+    const lho = dv.getUint32(off + 42, true);
+    const name = new TextDecoder('utf-8').decode(buf.subarray(off + 46, off + 46 + nl));
+    off += 46 + nl + el + cl;
+    if (name.endsWith('/') || (method !== 0 && method !== 8)) continue;
+    const start = lho + 30 + dv.getUint16(lho + 26, true) + dv.getUint16(lho + 28, true);
+    let data = buf.slice(start, start + csize);
+    if (method === 8) {
+      if (typeof DecompressionStream !== 'function') continue;
+      data = new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+    }
+    out.push({ name: name.replace(/^.*\//, ''), data });
+  }
+  return out;
+}
+function uniqueMdName(base, used) {
+  let name = base + '.md', k = 2;
+  while (used.has(name.toLowerCase())) name = base + '-' + (k++) + '.md';
+  used.add(name.toLowerCase());
+  return name;
+}
+// every note worth keeping, as { name, md }, with file names made unique inside this batch
+function backupEntries() {
+  if (editingEl) leaveEdit(editingEl);
+  const used = new Set(), out = [];
+  for (const n of sortedNotes()) {
+    const md = n.blocks.join('\n');
+    if (!md.trim()) continue;
+    out.push({ name: uniqueMdName(safeName(noteTitle(n)), used), md, updated: n.updated || Date.now() });
+  }
+  return out;
+}
+const stamp = () => { const d = new Date(), p = x => String(x).padStart(2, '0'); return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes()); };
+// write every note into a folder once, without connecting to it
+async function exportToFolder() {
+  const items = backupEntries();
+  if (!items.length) { toast('書き出せるメモがありません'); return; }
+  let h;
+  try { h = await pickDirectory(); } catch (err) { fsError(err, 'フォルダを開けませんでした'); return; }
+  try {
+    for (const it of items) {
+      const fh = await h.getFileHandle(it.name, { create: true });
+      const w = await fh.createWritable(); await w.write(it.md); await w.close();
+    }
+  } catch (err) { fsError(err, 'フォルダに書き出せませんでした'); return; }
+  toast('「' + h.name + '」に' + items.length + '件を書き出しました（このフォルダには接続していません）', 5000);
+}
+// read every .md in a folder once, as new notes, without connecting to it
+async function importFromFolder() {
+  let h;
+  try { h = await window.showDirectoryPicker(); } catch (err) { fsError(err, 'フォルダを開けませんでした'); return; }
+  const files = [];
+  try { for await (const [name, e] of h.entries()) if (e.kind === 'file' && (TEXT_EXT.test(name) || /\.zip$/i.test(name))) files.push(await e.getFile()); }
+  catch (err) { fsError(err, 'フォルダを読めませんでした'); return; }
+  if (!files.length) { toast('「' + h.name + '」に .md はありませんでした'); return; }
+  await importFiles(files);
+}
+// one .zip holding every note: the share sheet on phones, a plain download elsewhere
+async function exportZip() {
+  const items = backupEntries();
+  if (!items.length) { toast('書き出せるメモがありません'); return; }
+  const enc = new TextEncoder();
+  const blob = makeZip(items.map(it => ({ name: it.name, data: enc.encode(it.md), date: new Date(it.updated) })));
+  const filename = 'メモ帳-' + stamp() + '.zip';
+  const done = () => toast(items.length + '件を「' + filename + '」に書き出しました', 4000);
+  const coarse = window.matchMedia && matchMedia('(pointer: coarse)').matches;
+  if (coarse && navigator.canShare) {
+    const f = new File([blob], filename, { type: 'application/zip' });
+    if (navigator.canShare({ files: [f] })) {
+      try { await navigator.share({ files: [f], title: filename }); done(); return; }
+      catch (err) { if (err && err.name === 'AbortError') return; }
+    }
+  }
+  if (downloads) {
+    try { await downloads.save({ filename, data: new Uint8Array(await blob.arrayBuffer()) }); done(); return; }
+    catch (err) { if (err && err.code === 'declined') return; }
+  }
+  if (IN_CLAUDE) { toast('この環境では .zip を保存できません', 4000); return; }
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename; document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    done();
+  } catch (e) { toast('.zip を保存できませんでした'); }
+}
+const setupEl = $('#setup');
+setupEl.addEventListener('click', async e => {
+  const c = e.target.closest('[data-choice]'); if (!c) return;
+  const choice = c.dataset.choice;
+  if (choice === 'folder') {
+    try { const h = await pickDirectory(); setupEl.hidden = true; await fsConnect(h, true); }
+    catch (err) { fsError(err, 'フォルダを開けませんでした'); }
+    return;
+  }
+  setupEl.hidden = true;
+  if (choice === 'browser') { persist(); toast('このブラウザに保存します'); }
+});
+async function fsInit() {
+  for (const b of fileMenu.querySelectorAll('[data-fs]')) b.hidden = !FS_OK;
+  renderFs(); if (!FS_OK) return;
+  const h = await idb.get('dir');
+  if (!h) { if (firstRun) setupEl.hidden = false; return; }
+  try {
+    const perm = await h.queryPermission({ mode: 'readwrite' });
+    if (perm === 'granted') await fsConnect(h); else { pendingHandle = h; renderFs(); fsDialog('reconnect'); }
+  } catch (e) { pendingHandle = h; renderFs(); fsDialog('reconnect'); }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && dirHandle && !fsDirty.size) fsSyncFromFolder(); });
+window.addEventListener('beforeunload', () => { if (fsDirty.size) fsFlush(); });
+
+/* ---------- misc ---------- */
+let toastTimer;
+function toast(msg, ms = 1800) { toastEl.textContent = msg; toastEl.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('show'), ms); }
+const sideEl = $('#side'), backdrop = $('#backdrop');
+function closeSide() { sideEl.classList.remove('open'); backdrop.classList.remove('show'); }
+const narrow = () => matchMedia('(max-width:720px)').matches;
+function toggleSide() {
+  if (narrow()) { sideEl.classList.toggle('open'); backdrop.classList.toggle('show'); return; }
+  const hidden = document.body.classList.toggle('side-hidden');
+  try { localStorage.setItem('wysimd.side', hidden ? 'hidden' : ''); } catch (e) {}
+  renderSideBtn();
+}
+// ☰ opens the drawer on phones; on wide screens it points the way the sidebar will go
+function renderSideBtn() {
+  const btn = $('#menu'), hidden = document.body.classList.contains('side-hidden');
+  const label = narrow() ? 'メモ一覧' : hidden ? 'サイドバーを表示 (Ctrl+\\)' : 'サイドバーを隠す (Ctrl+\\)';
+  btn.textContent = narrow() ? '☰' : hidden ? '＞' : '＜';
+  btn.title = narrow() ? '' : label; btn.setAttribute('aria-label', label);
+}
+try { if (localStorage.getItem('wysimd.side') === 'hidden') document.body.classList.add('side-hidden'); } catch (e) {}
+$('#menu').addEventListener('click', toggleSide);
+renderSideBtn();
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === '\\' || e.code === 'Backslash' || e.code === 'IntlRo' || e.code === 'IntlYen')) { e.preventDefault(); toggleSide(); }
+});
+backdrop.addEventListener('click', closeSide);
+window.addEventListener('beforeunload', persist);
+window.addEventListener('resize', () => { if (document.body.classList.contains('src')) fitSource(); renderSideBtn(); });
+
+load(); renderNote(); renderList(); fsInit();
+})();
+</script>
+</body>
+</html>
