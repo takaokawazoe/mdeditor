@@ -362,8 +362,8 @@ const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','
 const PLACEHOLDER = 'ここに書き始めましょう';
 const KEY = 'wysimd.v1';
 
-const MANUAL = "# メモ帳の使い方\n\nこのメモはロックされています。編集したいときは右上の鍵をクリックして解除してください。削除されても、左上の「？」からいつでも入れ直せます。\n\n## 画面の見方\n\n| 場所 | 内容 |\n| --- | --- |\n| サイドバー | メモの一覧（並びは自由に入れ替え可）。上に「すべてのメモを検索」、下に保存先 |\n| 上部バー | ＜ ＞（サイドバーを隠す／表示。スマホは☰）、現在のメモのタイトル、↶ ↷（元に戻す／やり直す）、鍵（ロック）、検索、ファイル、Markdownを表示 |\n| 編集エリア | 行をクリックすると、その行だけ元のMarkdownが現れて編集できる |\n\n左上の「＜」かCtrl/⌘+`\\`でサイドバーを隠せます。隠すとボタンが「＞」に変わり、押すと戻ります（隠した状態は次に開いたときも続きます）。スマホなど画面が狭いときは「☰」でサイドバーを開閉し、上部バーの操作は「…」にまとまります。\n\n## 基本の書き方\n\n| 書きたいもの | 書き方 | 補足 |\n| --- | --- | --- |\n| 見出し | `# 見出し`（`#`は1〜6個） | 最初の行がメモのタイトルになる |\n| 箇条書き | `- 項目` | Enterで次の項目。空の項目でEnterすると抜ける |\n| 番号付き | `1. 項目` | 番号は表示時に1から振り直す。`1.` だけで書いてもよい |\n| チェックボックス | `- [ ] やること` | 四角をクリックで切り替え |\n| 太字 | `**文字**` | Ctrl/⌘+B |\n| 斜体 | `*文字*` | Ctrl/⌘+I |\n| コード | `` `文字` `` | Ctrl/⌘+E |\n| 取り消し線 | `~~文字~~` |  |\n| リンク | `[文字](https://…)` | Ctrl/⌘を押しながらクリックで開く |\n| 引用 | `> 文章` |  |\n| コードブロック | ```` ``` ```` で囲む | 中ではEnterが改行。閉じの ```` ``` ```` の行末でEnterで抜ける |\n| 区切り線 | `---` |  |\n\n- 箇条書きの中でTab：字下げ。Shift+Tabで戻す。番号付きは字下げすると `1.` から\n- Shift+Enter：同じ行の中で改行\n- 行頭でBackspace：前の行とつなぐ\n\n## 表の書き方\n\n`| 名前 | 点数` と書いてEnterを押すと、行末の `|` と区切り行 `| --- | --- |` が自動で入り、次の行が `| ` で始まります。あとはセルを `|` で区切りながら書き、Enterで次の行へ。行頭に `|` だけの状態でEnterを押すと表を抜けます。\n\n- Tab／Shift+Tab：次／前のセルへ。最後のセルでTabするとセルを追加\n- 編集を終えると縦線が揃うよう自動で整形\n- 区切り行を `:---` `:---:` `---:` にすると左寄せ・中央・右寄せ\n- セルの中に `|` を書くときは `\\|`\n\n## 検索と置換\n\n**このメモ内**：上部の「検索」か Ctrl/⌘+F。Ctrl/⌘+H で置換欄も開きます（バー内の「置換」でも切り替え）。\n\n- Aa：大文字と小文字を区別、.*：正規表現\n- Enter／↓で次、Shift+Enter／↑で前。該当する行は薄く色が付き、いま見ている一致はその行の元のMarkdownの中で反転\n- Esc：閉じて、その一致箇所を選択した状態で編集に入る\n- 置換：1件ずつ（置換後は次へ進む）。すべて置換：一括。Undoで戻せる。正規表現なら `$1` で捕捉した文字を使える\n\n**すべてのメモ**：サイドバー上の検索欄（Ctrl/⌘+Shift+F）。該当するメモだけが件数と抜粋つきで並びます。3件まで表示し、「さらに表示」で残りを開きます。クリックするとそのメモが開き、同じ検索語がメモ内検索に引き継がれます。\n\n## 行の選択\n\n編集中の行でShift+↓（行末側）／Shift+↑（行頭側）を押すと、行単位の選択が始まります。続けてShift+↑↓で範囲を伸ばしたり縮めたりできます。\n\n- Ctrl/⌘+C：選択した行のMarkdownをコピー\n- Ctrl/⌘+X、Backspace、Delete：選択した行を削除\n- Tab／Shift+Tab、Alt+Shift+→／←：選択した行をまとめて字下げ／戻す\n- Alt+Shift+↑／↓：選択した行をまとめて上下に移動\n- 文字を打つ、Enter：選択行を消してその場で入力を始める\n- Esc、矢印キー、クリック：選択を解除\n- Ctrl/⌘+A：メモの全行を選択（そのままCtrl/⌘+Cで全体をコピー）\n\n行の途中から別の行の途中まで、という文字単位の選択はできません。\n\n## メモの管理とロック\n\n- 新しいメモ：「＋ 新しいメモ」（一覧の先頭に入ります）\n- 並べ替え：一覧の項目をドラッグして好きな位置へ。スマホでは項目を長押しして持ち上げてから指を動かす（端まで運ぶと一覧がスクロール）。更新しても並びは変わりません\n- 削除：一覧の項目にマウスを乗せて「×」→「削除する」\n- ロック：上部の鍵をクリック。ロック中は本文を編集・削除できません。閲覧・検索・コピー・.md保存はできます。もう一度クリックで解除\n- 元に戻す／やり直す：↶ ↷、Ctrl/⌘+Z、Ctrl/⌘+Shift+Z（Ctrl+Y）。履歴はメモごと\n- Markdownを表示：メモ全体を生のMarkdownとして表示・編集\n- ？：この使い方を開く（削除されていれば入れ直す）\n\n## ファイルの読み込みと書き出し\n\n上部バーの「ファイル」（スマホは「…」）にまとまっています。1ファイル＝1メモです。\n\n| メニュー | すること |\n| --- | --- |\n| 指定したファイルを開く | 選んだ.md／.txt（複数可）をメモとして追加 |\n| .zip内のすべての.mdを開く | .zipの中の.mdをすべてメモとして追加（書き出した控えを戻すとき） |\n| フォルダ内のすべての.mdを開く | 選んだフォルダの.mdをすべて一度だけ読み込む（Chrome/Edge） |\n| このファイルを.mdで保存 | 表示中のメモを.mdファイルとしてダウンロード |\n| すべてのファイルを保存 → フォルダへ書き出し | 選んだフォルダに全メモを `タイトル.md` として一度だけ書き出す（Chrome/Edge） |\n| すべてのファイルを保存 → .zipで保存 | 全メモを1つの.zipにまとめる。スマホでは共有シートが開くので、ファイルアプリやクラウドにそのまま送れる |\n\n- .mdや.txt、.zipを画面にドラッグして落としても追加できます\n- すでに同じ内容のメモがあるファイルは飛ばします。控えを読み直しても二重になりません\n- フォルダへの書き出し・読み込みは一回きりで、そのフォルダを保存先にはしません\n- スマホの「…」には「すべてをコピー」もあり、表示中のメモのMarkdownをまるごとクリップボードへ送れます\n\n## 保存先\n\n最初に開いたとき（Chrome/Edgeでパソコンに置いたHTMLを開いた場合）に、保存先を選ぶ画面が出ます。\n\n- ブラウザに保存：このブラウザの中に保存。ファイルは作らない。最後の変更から0.4秒後に自動保存\n- フォルダに保存：選んだフォルダに各メモを `タイトル.md` として保存。最後の変更から0.7秒後に書き戻し。最初の行を変えるとファイル名も追従、削除するとファイルも消える。フォルダに他のエディタで.mdを追加すると「再読み込み」で取り込む\n\nいまの保存先はサイドバー下に「ブラウザ（ローカルストレージ）」または「ローカルPC（フォルダ名）」と出ています。「保存先の切り替え」で変えられます。\n\n- ブラウザ → ローカルPC：フォルダを選ぶと、いまのメモをそのフォルダに書き出し、フォルダにある.mdも読み込みます\n- ローカルPC → ブラウザ：「切り替える」を押すと、以後はブラウザに保存します。メモはブラウザに残り、フォルダの.mdも消えません\n\nブラウザを開き直したときなどにフォルダへの許可が切れていると、再接続を促す画面が出ます。「接続する」で保存を再開します。「あとで」を選ぶとサイドバー下に「未接続」と出て、接続するまで変更はブラウザにだけ残ります（接続したときにフォルダへ反映します）。\n\nフォルダ保存はChrome/Edge限定で、Claude上の公開版・Firefox・Safari・スマホでは「保存先の切り替え」は出ません。ブラウザの閲覧データを消すとブラウザ内のメモは消えるので、大事なものはフォルダ保存か、「ファイル」→「すべてのファイルを保存」で控えを。\n\n**フォルダ保存中に食い違ったとき**：ブラウザ側と.mdファイルの両方が変わっていたら、更新が新しいほうを残し、負けたほうを「○○（ブラウザ側の写し）」「○○（フォルダ側の写し）」という別のメモにします。どちらの内容も消えません。\n\n## 困ったときは\n\n- 書式が効かない：`#` や `-` のあとに半角スペースが必要です\n- 表にならない：見出し行の次に `| --- | --- |` の区切り行が必要です。`|` や `-` が全角になっていないか確認してください\n- 「保存先の切り替え」が出ない：ChromeかEdgeで、パソコンに置いたHTMLを直接開いているか確認してください\n- フォントが違って見える：オフラインではWebフォントが読めず、端末の標準フォントで表示されます";
-const MANUAL_VER = 5;
+const MANUAL = "# メモ帳の使い方\n\nこのメモはロックされています。編集したいときは右上の鍵をクリックして解除してください。削除されても、左上の「？」からいつでも入れ直せます。\n\n## 画面の見方\n\n| 場所 | 内容 |\n| --- | --- |\n| サイドバー | メモの一覧（並びは自由に入れ替え可）。上に「すべてのメモを検索」、下に保存先 |\n| 上部バー | ＜ ＞（サイドバーを隠す／表示。スマホは☰）、現在のメモのタイトル、↶ ↷（元に戻す／やり直す）、鍵（ロック）、検索、ファイル、Markdownを表示 |\n| 編集エリア | 行をクリックすると、その行だけ元のMarkdownが現れて編集できる |\n\n左上の「＜」かCtrl/⌘+`\\`でサイドバーを隠せます。隠すとボタンが「＞」に変わり、押すと戻ります（隠した状態は次に開いたときも続きます）。スマホなど画面が狭いときは「☰」でサイドバーを開閉し、上部バーの操作は「…」にまとまります。\n\n## 基本の書き方\n\n| 書きたいもの | 書き方 | 補足 |\n| --- | --- | --- |\n| 見出し | `# 見出し`（`#`は1〜6個） | 最初の行がメモのタイトルになる |\n| 箇条書き | `- 項目` | Enterで次の項目。空の項目でEnterすると抜ける |\n| 番号付き | `1. 項目` | 番号は表示時に1から振り直す。`1.` だけで書いてもよい |\n| チェックボックス | `- [ ] やること` | 四角をクリックで切り替え |\n| 太字 | `**文字**` | Ctrl/⌘+B |\n| 斜体 | `*文字*` | Ctrl/⌘+I |\n| コード | `` `文字` `` | Ctrl/⌘+E |\n| 取り消し線 | `~~文字~~` |  |\n| リンク | `[文字](https://…)` | Ctrl/⌘を押しながらクリックで開く |\n| 引用 | `> 文章` |  |\n| コードブロック | ```` ``` ```` で囲む | 中ではEnterが改行。閉じの ```` ``` ```` の行末でEnterで抜ける |\n| 区切り線 | `---` |  |\n\n- Ctrl/⌘+B（太字）・I（斜体）・E（コード）は切り替えです。文字を選んでから押すとその部分を囲み、もう一度押すと囲みが外れます。何も選ばずに押すと記号だけが入り、そのまま打てます\n- 箇条書きの中でTab：字下げ。Shift+Tabで戻す。番号付きは字下げすると `1.` から\n- Shift+Enter：同じ行の中で改行\n- 行頭でBackspace：前の行とつなぐ\n\n## 表の書き方\n\n`| 名前 | 点数` と書いてEnterを押すと、行末の `|` と区切り行 `| --- | --- |` が自動で入り、次の行が `| ` で始まります。あとはセルを `|` で区切りながら書き、Enterで次の行へ。行頭に `|` だけの状態でEnterを押すと表を抜けます。\n\n- Tab／Shift+Tab：次／前のセルへ。最後のセルでTabするとセルを追加\n- 編集を終えると縦線が揃うよう自動で整形\n- 区切り行を `:---` `:---:` `---:` にすると左寄せ・中央・右寄せ\n- セルの中に `|` を書くときは `\\|`\n\n## 検索と置換\n\n**このメモ内**：上部の「検索」か Ctrl/⌘+F。Ctrl/⌘+H で置換欄も開きます（バー内の「置換」でも切り替え）。\n\n- Aa：大文字と小文字を区別、.*：正規表現\n- Enter／↓で次、Shift+Enter／↑で前。該当する行は薄く色が付き、いま見ている一致はその行の元のMarkdownの中で反転\n- Esc：閉じて、その一致箇所を選択した状態で編集に入る\n- 置換：1件ずつ（置換後は次へ進む）。すべて置換：一括。Undoで戻せる。正規表現なら `$1` で捕捉した文字を使える\n\n**すべてのメモ**：サイドバー上の検索欄（Ctrl/⌘+Shift+F）。該当するメモだけが件数と抜粋つきで並びます。3件まで表示し、「さらに表示」で残りを開きます。クリックするとそのメモが開き、同じ検索語がメモ内検索に引き継がれます。\n\n## 行の選択\n\n編集中の行でShift+↓（行末側）／Shift+↑（行頭側）を押すと、行単位の選択が始まります。続けてShift+↑↓で範囲を伸ばしたり縮めたりできます。\n\n- Ctrl/⌘+C：選択した行のMarkdownをコピー\n- Ctrl/⌘+X、Backspace、Delete：選択した行を削除\n- Tab／Shift+Tab、Alt+Shift+→／←：選択した行をまとめて字下げ／戻す\n- Alt+Shift+↑／↓：選択した行をまとめて上下に移動\n- 文字を打つ、Enter：選択行を消してその場で入力を始める\n- Esc、矢印キー、クリック：選択を解除\n- Ctrl/⌘+A：メモの全行を選択（そのままCtrl/⌘+Cで全体をコピー）\n\n行の途中から別の行の途中まで、という文字単位の選択はできません。\n\n## メモの管理とロック\n\n- 新しいメモ：「＋ 新しいメモ」（一覧の先頭に入ります）\n- 並べ替え：一覧の項目をドラッグして好きな位置へ。スマホでは項目を長押しして持ち上げてから指を動かす（端まで運ぶと一覧がスクロール）。更新しても並びは変わりません\n- 削除：一覧の項目にマウスを乗せて「×」→「削除する」\n- ロック：上部の鍵をクリック。ロック中は本文を編集・削除できません。閲覧・検索・コピー・.md保存はできます。もう一度クリックで解除\n- 元に戻す／やり直す：↶ ↷、Ctrl/⌘+Z、Ctrl/⌘+Shift+Z（Ctrl+Y）。履歴はメモごと\n- Markdownを表示：メモ全体を生のMarkdownとして表示・編集\n- ？：この使い方を開く（削除されていれば入れ直す）\n\n## ファイルの読み込みと書き出し\n\n上部バーの「ファイル」（スマホは「…」）にまとまっています。1ファイル＝1メモです。\n\n| メニュー | すること |\n| --- | --- |\n| 指定したファイルを開く | 選んだ.md／.txt（複数可）をメモとして追加 |\n| .zip内のすべての.mdを開く | .zipの中の.mdをすべてメモとして追加（書き出した控えを戻すとき） |\n| フォルダ内のすべての.mdを開く | 選んだフォルダの.mdをすべて一度だけ読み込む（Chrome/Edge） |\n| このファイルを.mdで保存 | 表示中のメモを.mdファイルとしてダウンロード |\n| すべてのファイルを保存 → フォルダへ書き出し | 選んだフォルダに全メモを `タイトル.md` として一度だけ書き出す（Chrome/Edge） |\n| すべてのファイルを保存 → .zipで保存 | 全メモを1つの.zipにまとめる。スマホでは共有シートが開くので、ファイルアプリやクラウドにそのまま送れる |\n\n- .mdや.txt、.zipを画面にドラッグして落としても追加できます\n- すでに同じ内容のメモがあるファイルは飛ばします。控えを読み直しても二重になりません\n- フォルダへの書き出し・読み込みは一回きりで、そのフォルダを保存先にはしません\n- スマホの「…」には「すべてをコピー」もあり、表示中のメモのMarkdownをまるごとクリップボードへ送れます\n\n## 保存先\n\n最初に開いたとき（Chrome/Edgeでパソコンに置いたHTMLを開いた場合）に、保存先を選ぶ画面が出ます。\n\n- ブラウザに保存：このブラウザの中に保存。ファイルは作らない。最後の変更から0.4秒後に自動保存\n- フォルダに保存：選んだフォルダに各メモを `タイトル.md` として保存。最後の変更から0.7秒後に書き戻し。最初の行を変えるとファイル名も追従、削除するとファイルも消える。フォルダに他のエディタで.mdを追加すると「再読み込み」で取り込む\n\nいまの保存先はサイドバー下に「ブラウザ（ローカルストレージ）」または「ローカルPC（フォルダ名）」と出ています。「保存先の切り替え」で変えられます。\n\n- ブラウザ → ローカルPC：フォルダを選ぶと、いまのメモをそのフォルダに書き出し、フォルダにある.mdも読み込みます\n- ローカルPC → ブラウザ：「切り替える」を押すと、以後はブラウザに保存します。メモはブラウザに残り、フォルダの.mdも消えません\n\nブラウザを開き直したときなどにフォルダへの許可が切れていると、再接続を促す画面が出ます。「接続する」で保存を再開します。「あとで」を選ぶとサイドバー下に「未接続」と出て、接続するまで変更はブラウザにだけ残ります（接続したときにフォルダへ反映します）。\n\nフォルダ保存はChrome/Edge限定で、Claude上の公開版・Firefox・Safari・スマホでは「保存先の切り替え」は出ません。ブラウザの閲覧データを消すとブラウザ内のメモは消えるので、大事なものはフォルダ保存か、「ファイル」→「すべてのファイルを保存」で控えを。\n\n**フォルダ保存中に食い違ったとき**：ブラウザ側と.mdファイルの両方が変わっていたら、更新が新しいほうを残し、負けたほうを「○○（ブラウザ側の写し）」「○○（フォルダ側の写し）」という別のメモにします。どちらの内容も消えません。\n\n## 困ったときは\n\n- 書式が効かない：`#` や `-` のあとに半角スペースが必要です\n- 表にならない：見出し行の次に `| --- | --- |` の区切り行が必要です。`|` や `-` が全角になっていないか確認してください\n- 「保存先の切り替え」が出ない：ChromeかEdgeで、パソコンに置いたHTMLを直接開いているか確認してください\n- フォントが違って見える：オフラインではWebフォントが読めず、端末の標準フォントで表示されます";
+const MANUAL_VER = 6;
 const SAMPLE = [
   '# メモ帳へようこそ',
   '',
@@ -607,9 +607,11 @@ function snapshot(kind) {
   const bi = editingEl ? [...blocksEl.children].indexOf(editingEl) : null;
   return { blocks: cur().blocks.slice(), bi, off: editingEl ? caretOffset(editingEl) : 0, kind, t: Date.now() };
 }
+let breakMerge = false; // set by wrapSel: a toggle is its own undo step, never merged into the typing before it
 function record(kind) {
   const h = hist(), snap = snapshot(kind), last = h.stack[h.idx];
-  if (last && kind === 'type' && last.kind === 'type' && last.bi === snap.bi && snap.t - last.t < 800) { h.stack[h.idx] = snap; return; }
+  const merge = !breakMerge; breakMerge = false;
+  if (merge && last && kind === 'type' && last.kind === 'type' && last.bi === snap.bi && snap.t - last.t < 800) { h.stack[h.idx] = snap; return; }
   h.stack.length = h.idx + 1;
   h.stack.push(snap);
   if (h.stack.length > 200) h.stack.shift();
@@ -782,10 +784,60 @@ function mergeNext(el, raw) {
   el._raw = raw + next._raw; next.remove();
   el.textContent = el._raw; applyClasses(el, blockInfo(el._raw), true); setCaret(el, raw.length); syncBlocks();
 }
+function selOffsets(el) {
+  const sel = getSelection(); if (!sel.rangeCount) return [0, 0];
+  const r = sel.getRangeAt(0); if (!el.contains(r.startContainer)) return [0, 0];
+  const pre = document.createRange(); pre.selectNodeContents(el); pre.setEnd(r.startContainer, r.startOffset);
+  const a = pre.toString().length;
+  const post = document.createRange(); post.selectNodeContents(el); post.setEnd(r.endContainer, r.endOffset);
+  const b = post.toString().length;
+  return a <= b ? [a, b] : [b, a];
+}
+// every place `m` could open or close a span. runs of * are split the CommonMark way:
+// in ***x***, ** is the outer pair and * the inner one, so each toggle takes off its own markers
+function markerSpots(raw, m) {
+  const out = [], L = m.length;
+  if (m !== '*' && m !== '**') {
+    for (let i = 0; i <= raw.length - L; i++) if (raw.slice(i, i + L) === m) { out.push(i); i += L - 1; }
+    return out;
+  }
+  for (let i = 0; i < raw.length; i++) {
+    if (raw[i] !== '*') continue;
+    let j = i; while (raw[j] === '*') j++;
+    const n = j - i, opening = out.length % 2 === 0;
+    if (m === '*') { if (n % 2 === 1) out.push(opening ? j - 1 : i); }      // the innermost star of the run
+    else for (let k = i; k + 2 <= j; k += 2) out.push(k);                    // **** is two pairs, not one
+    i = j - 1;
+  }
+  return out;
+}
+// the m…m pair that holds [start,end] (touching its markers counts), if there is one
+function wrappedSpan(raw, m, start, end) {
+  const spots = markerSpots(raw, m), L = m.length;
+  for (let i = 0; i + 1 < spots.length; i += 2) {
+    const a = spots[i], b = spots[i + 1];
+    if (start >= a && end <= b + L) return { a, b };
+  }
+  return null;
+}
+// Ctrl+B / I / E toggle: press once to wrap, press again to take the markers off
 function wrapSel(el, m) {
-  const sel = getSelection(), text = sel.toString();
-  if (text) insertText(m + text + m);
-  else { insertText(m + m); setCaret(el, caretOffset(el) - m.length); }
+  const raw = readRaw(el), [start, end] = selOffsets(el), L = m.length;
+  breakMerge = true;
+  const span = wrappedSpan(raw, m, start, end);
+  if (span) {
+    const inner = raw.slice(span.a + L, span.b);
+    setSelectionRange(el, span.a, span.b + L);
+    insertText(inner);
+    const s = Math.min(Math.max(start - L, span.a), span.a + inner.length);
+    const e = Math.min(Math.max(end - L, span.a), span.a + inner.length);
+    s === e ? setCaret(el, s) : setSelectionRange(el, s, e);
+    return;
+  }
+  if (start !== end) { // keep the text selected so pressing again takes it off
+    insertText(m + raw.slice(start, end) + m);
+    setSelectionRange(el, start + L, end + L);
+  } else { insertText(m + m); setCaret(el, start + L); }
 }
 function toggleTask(el) {
   el._raw = el._raw.replace(/^(\s*[-*+]\s+\[)([ xX])(\])/, (m, a, b, c) => a + (b === ' ' ? 'x' : ' ') + c);
