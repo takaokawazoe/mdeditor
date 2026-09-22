@@ -99,6 +99,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 .block.hit:not(.editing){background:color-mix(in srgb,var(--accent-soft) 70%,transparent);border-radius:4px}
 .block.peek{background:transparent}
 .block.bsel{background:var(--accent-soft);border-radius:4px}
+#blocks:focus{outline:none}
+#blocks:focus-visible{outline:2px solid var(--accent);outline-offset:6px;border-radius:6px}
 body.bselecting,body.bselecting *{user-select:none;-webkit-user-select:none}
 .block.bsel::selection,.block.bsel *::selection{background:transparent}
 .block mark.fm{background:var(--accent);color:var(--paper);border-radius:3px;padding:0 1px}
@@ -189,7 +191,7 @@ body.src .blocks{display:none}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 .modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(20,23,30,.45)}
 .modal[hidden]{display:none}
-.modal-box{width:100%;max-width:420px;background:var(--paper);border-radius:12px;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.modal-box{width:100%;max-width:420px;max-height:86vh;overflow-y:auto;background:var(--paper);border-radius:12px;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
 .modal-box h2{margin:0 0 6px;font-size:17px;font-weight:600}
 .modal-box p{margin:0 0 16px;font-size:13px;color:var(--ink-2)}
 .choice{display:block;width:100%;text-align:left;padding:12px 14px;margin-bottom:8px;border:1px solid var(--rule);border-radius:10px;background:var(--paper)}
@@ -204,11 +206,22 @@ body.src .blocks{display:none}
 .settings-box .row.sub{margin-top:-4px;font-size:13px;color:var(--ink-2)}
 .settings-box .row>span{flex:none}
 .settings-box .row>span b{font-weight:500;color:var(--ink-2);margin-left:6px}
+.settings-box{max-width:560px}
 .settings-box select,.settings-box input:not([type=range]){flex:1;min-width:0;font:inherit;font-size:13.5px;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:7px;padding:6px 9px}
 .settings-box input[type=range]{flex:1;accent-color:var(--accent)}
 .settings-box .hint{font-size:12px;margin:8px 0 0;line-height:1.5}
 .settings-box .acts{display:flex;justify-content:flex-end;gap:6px;margin-top:16px}
 .settings-box .acts .btn{display:inline-block;margin:0}
+.settings-box .keys{margin-top:18px;padding-top:12px;border-top:1px solid var(--rule)}
+.settings-box .keys h3{display:flex;align-items:center;justify-content:space-between;margin:0 0 6px;font-size:13px;font-weight:600}
+.settings-box .keys h3 .btn{font-size:12px;padding:3px 7px;margin:0}
+.krow{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:13px}
+.krow .kl{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.krow .kw{flex:none;width:96px;font-size:11.5px;color:var(--ink-2)}
+.krow .kk{flex:none;min-width:120px;text-align:right;font-family:var(--font-mono);font-size:12px;color:var(--ink)}
+.krow .kk.none{color:var(--ink-2)}
+.krow.waiting .kk{color:var(--accent);font-family:inherit}
+.krow .btn{padding:3px 7px;font-size:12px}
 .settings-box .dev{margin-top:16px;padding-top:12px;border-top:1px dashed var(--rule)}
 .settings-box .dev h3{margin:0 0 4px;font-size:13px;font-weight:600;color:var(--danger)}
 .settings-box .dev .acts{justify-content:flex-start;margin-top:6px}
@@ -310,7 +323,7 @@ body.dragging .drop{display:flex}
   </div>
   <main class="editor" id="editor">
     <div class="page" id="page">
-      <div class="blocks" id="blocks"></div>
+      <div class="blocks" id="blocks" tabindex="0"></div>
       <textarea class="source" id="source" spellcheck="false" aria-label="Markdownソース"></textarea>
     </div>
   </main>
@@ -326,6 +339,11 @@ body.dragging .drop{display:flex}
     <label class="row sub" id="sMonoCustomRow" hidden><span>フォント名</span><input id="sMonoCustom" placeholder="例: Consolas、JetBrains Mono"></label>
     <label class="row"><span>文字サイズ <b id="sSizeVal"></b></span><input type="range" id="sSize" min="13" max="22" step="1"></label>
     <p class="hint">パソコンに入っているフォントは名前で指定できます。Google Fontsにあるフォント名を入れると、自動で読み込みます。</p>
+    <div class="keys" id="keysSection">
+      <h3>キーボード<button class="btn" id="keysReset">すべて既定に戻す</button></h3>
+      <div id="keysList"></div>
+      <p class="hint">「変更」を押したあと、割り当てたいキーを押してください。Enter・Tab・Esc・矢印キーは本文の操作に使うので割り当てられません。</p>
+    </div>
     <div class="dev" id="devPanel" hidden>
       <h3>テスト用</h3>
       <p class="hint" id="devInfo"></p>
@@ -362,8 +380,8 @@ const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','
 const PLACEHOLDER = 'ここに書き始めましょう';
 const KEY = 'wysimd.v1';
 
-const MANUAL = "# メモ帳の使い方\n\nこのメモはロックされています。編集したいときは右上の鍵をクリックして解除してください。削除されても、左上の「？」からいつでも入れ直せます。\n\n## 画面の見方\n\n| 場所 | 内容 |\n| --- | --- |\n| サイドバー | メモの一覧（並びは自由に入れ替え可）。上に「すべてのメモを検索」、下に保存先 |\n| 上部バー | ＜ ＞（サイドバーを隠す／表示。スマホは☰）、現在のメモのタイトル、↶ ↷（元に戻す／やり直す）、鍵（ロック）、検索、ファイル、Markdownを表示 |\n| 編集エリア | 行をクリックすると、その行だけ元のMarkdownが現れて編集できる |\n\n左上の「＜」かCtrl/⌘+`\\`でサイドバーを隠せます。隠すとボタンが「＞」に変わり、押すと戻ります（隠した状態は次に開いたときも続きます）。スマホなど画面が狭いときは「☰」でサイドバーを開閉し、上部バーの操作は「…」にまとまります。\n\n## 基本の書き方\n\n| 書きたいもの | 書き方 | 補足 |\n| --- | --- | --- |\n| 見出し | `# 見出し`（`#`は1〜6個） | 最初の行がメモのタイトルになる |\n| 箇条書き | `- 項目` | Enterで次の項目。空の項目でEnterすると抜ける |\n| 番号付き | `1. 項目` | 番号は表示時に1から振り直す。`1.` だけで書いてもよい |\n| チェックボックス | `- [ ] やること` | 四角をクリックで切り替え |\n| 太字 | `**文字**` | Ctrl/⌘+B |\n| 斜体 | `*文字*` | Ctrl/⌘+I |\n| コード | `` `文字` `` | Ctrl/⌘+E |\n| 取り消し線 | `~~文字~~` |  |\n| リンク | `[文字](https://…)` | Ctrl/⌘を押しながらクリックで開く |\n| 引用 | `> 文章` |  |\n| コードブロック | ```` ``` ```` で囲む | 中ではEnterが改行。閉じの ```` ``` ```` の行末でEnterで抜ける |\n| 区切り線 | `---` |  |\n\n- Ctrl/⌘+B（太字）・I（斜体）・E（コード）は切り替えです。文字を選んでから押すとその部分を囲み、もう一度押すと囲みが外れます。何も選ばずに押すと記号だけが入り、そのまま打てます\n- 箇条書きの中でTab：字下げ。Shift+Tabで戻す。番号付きは字下げすると `1.` から\n- Shift+Enter：同じ行の中で改行\n- 行頭でBackspace：前の行とつなぐ\n\n## 表の書き方\n\n`| 名前 | 点数` と書いてEnterを押すと、行末の `|` と区切り行 `| --- | --- |` が自動で入り、次の行が `| ` で始まります。あとはセルを `|` で区切りながら書き、Enterで次の行へ。行頭に `|` だけの状態でEnterを押すと表を抜けます。\n\n- Tab／Shift+Tab：次／前のセルへ。最後のセルでTabするとセルを追加\n- 編集を終えると縦線が揃うよう自動で整形\n- 区切り行を `:---` `:---:` `---:` にすると左寄せ・中央・右寄せ\n- セルの中に `|` を書くときは `\\|`\n\n## 検索と置換\n\n**このメモ内**：上部の「検索」か Ctrl/⌘+F。Ctrl/⌘+H で置換欄も開きます（バー内の「置換」でも切り替え）。\n\n- Aa：大文字と小文字を区別、.*：正規表現\n- Enter／↓で次、Shift+Enter／↑で前。該当する行は薄く色が付き、いま見ている一致はその行の元のMarkdownの中で反転\n- Esc：閉じて、その一致箇所を選択した状態で編集に入る\n- 置換：1件ずつ（置換後は次へ進む）。すべて置換：一括。Undoで戻せる。正規表現なら `$1` で捕捉した文字を使える\n\n**すべてのメモ**：サイドバー上の検索欄（Ctrl/⌘+Shift+F）。該当するメモだけが件数と抜粋つきで並びます。3件まで表示し、「さらに表示」で残りを開きます。クリックするとそのメモが開き、同じ検索語がメモ内検索に引き継がれます。\n\n## 行の選択\n\n編集中の行でShift+↓（行末側）／Shift+↑（行頭側）を押すと、行単位の選択が始まります。続けてShift+↑↓で範囲を伸ばしたり縮めたりできます。\n\n- Ctrl/⌘+C：選択した行のMarkdownをコピー\n- Ctrl/⌘+X、Backspace、Delete：選択した行を削除\n- Tab／Shift+Tab、Alt+Shift+→／←：選択した行をまとめて字下げ／戻す\n- Alt+Shift+↑／↓：選択した行をまとめて上下に移動\n- 文字を打つ、Enter：選択行を消してその場で入力を始める\n- Esc、矢印キー、クリック：選択を解除\n- Ctrl/⌘+A：メモの全行を選択（そのままCtrl/⌘+Cで全体をコピー）\n\n行の途中から別の行の途中まで、という文字単位の選択はできません。\n\n## メモの管理とロック\n\n- 新しいメモ：「＋ 新しいメモ」（一覧の先頭に入ります）\n- 並べ替え：一覧の項目をドラッグして好きな位置へ。スマホでは項目を長押しして持ち上げてから指を動かす（端まで運ぶと一覧がスクロール）。更新しても並びは変わりません\n- 削除：一覧の項目にマウスを乗せて「×」→「削除する」\n- ロック：上部の鍵をクリック。ロック中は本文を編集・削除できません。閲覧・検索・コピー・.md保存はできます。もう一度クリックで解除\n- 元に戻す／やり直す：↶ ↷、Ctrl/⌘+Z、Ctrl/⌘+Shift+Z（Ctrl+Y）。履歴はメモごと\n- Markdownを表示：メモ全体を生のMarkdownとして表示・編集\n- ？：この使い方を開く（削除されていれば入れ直す）\n\n## ファイルの読み込みと書き出し\n\n上部バーの「ファイル」（スマホは「…」）にまとまっています。1ファイル＝1メモです。\n\n| メニュー | すること |\n| --- | --- |\n| 指定したファイルを開く | 選んだ.md／.txt（複数可）をメモとして追加 |\n| .zip内のすべての.mdを開く | .zipの中の.mdをすべてメモとして追加（書き出した控えを戻すとき） |\n| フォルダ内のすべての.mdを開く | 選んだフォルダの.mdをすべて一度だけ読み込む（Chrome/Edge） |\n| このファイルを.mdで保存 | 表示中のメモを.mdファイルとしてダウンロード |\n| すべてのファイルを保存 → フォルダへ書き出し | 選んだフォルダに全メモを `タイトル.md` として一度だけ書き出す（Chrome/Edge） |\n| すべてのファイルを保存 → .zipで保存 | 全メモを1つの.zipにまとめる。スマホでは共有シートが開くので、ファイルアプリやクラウドにそのまま送れる |\n\n- .mdや.txt、.zipを画面にドラッグして落としても追加できます\n- すでに同じ内容のメモがあるファイルは飛ばします。控えを読み直しても二重になりません\n- フォルダへの書き出し・読み込みは一回きりで、そのフォルダを保存先にはしません\n- スマホの「…」には「すべてをコピー」もあり、表示中のメモのMarkdownをまるごとクリップボードへ送れます\n\n## 保存先\n\n最初に開いたとき（Chrome/Edgeでパソコンに置いたHTMLを開いた場合）に、保存先を選ぶ画面が出ます。\n\n- ブラウザに保存：このブラウザの中に保存。ファイルは作らない。最後の変更から0.4秒後に自動保存\n- フォルダに保存：選んだフォルダに各メモを `タイトル.md` として保存。最後の変更から0.7秒後に書き戻し。最初の行を変えるとファイル名も追従、削除するとファイルも消える。フォルダに他のエディタで.mdを追加すると「再読み込み」で取り込む\n\nいまの保存先はサイドバー下に「ブラウザ（ローカルストレージ）」または「ローカルPC（フォルダ名）」と出ています。「保存先の切り替え」で変えられます。\n\n- ブラウザ → ローカルPC：フォルダを選ぶと、いまのメモをそのフォルダに書き出し、フォルダにある.mdも読み込みます\n- ローカルPC → ブラウザ：「切り替える」を押すと、以後はブラウザに保存します。メモはブラウザに残り、フォルダの.mdも消えません\n\nブラウザを開き直したときなどにフォルダへの許可が切れていると、再接続を促す画面が出ます。「接続する」で保存を再開します。「あとで」を選ぶとサイドバー下に「未接続」と出て、接続するまで変更はブラウザにだけ残ります（接続したときにフォルダへ反映します）。\n\nフォルダ保存はChrome/Edge限定で、Claude上の公開版・Firefox・Safari・スマホでは「保存先の切り替え」は出ません。ブラウザの閲覧データを消すとブラウザ内のメモは消えるので、大事なものはフォルダ保存か、「ファイル」→「すべてのファイルを保存」で控えを。\n\n**フォルダ保存中に食い違ったとき**：ブラウザ側と.mdファイルの両方が変わっていたら、更新が新しいほうを残し、負けたほうを「○○（ブラウザ側の写し）」「○○（フォルダ側の写し）」という別のメモにします。どちらの内容も消えません。\n\n## 困ったときは\n\n- 書式が効かない：`#` や `-` のあとに半角スペースが必要です\n- 表にならない：見出し行の次に `| --- | --- |` の区切り行が必要です。`|` や `-` が全角になっていないか確認してください\n- 「保存先の切り替え」が出ない：ChromeかEdgeで、パソコンに置いたHTMLを直接開いているか確認してください\n- フォントが違って見える：オフラインではWebフォントが読めず、端末の標準フォントで表示されます";
-const MANUAL_VER = 6;
+const MANUAL = "# メモ帳の使い方\n\nこのメモはロックされています。編集したいときは右上の鍵をクリックして解除してください。削除されても、左上の「？」からいつでも入れ直せます。\n\n## 画面の見方\n\n| 場所 | 内容 |\n| --- | --- |\n| サイドバー | メモの一覧（並びは自由に入れ替え可）。上に「すべてのメモを検索」、下に保存先 |\n| 上部バー | ＜ ＞（サイドバーを隠す／表示。スマホは☰）、現在のメモのタイトル、↶ ↷（元に戻す／やり直す）、鍵（ロック）、検索、ファイル、Markdownを表示 |\n| 編集エリア | 行をクリックすると、その行だけ元のMarkdownが現れて編集できる |\n\n左上の「＜」かCtrl/⌘+`\\`でサイドバーを隠せます。隠すとボタンが「＞」に変わり、押すと戻ります（隠した状態は次に開いたときも続きます）。スマホなど画面が狭いときは「☰」でサイドバーを開閉し、上部バーの操作は「…」にまとまります。\n\n## 基本の書き方\n\n| 書きたいもの | 書き方 | 補足 |\n| --- | --- | --- |\n| 見出し | `# 見出し`（`#`は1〜6個） | 最初の行がメモのタイトルになる |\n| 箇条書き | `- 項目` | Enterで次の項目。空の項目でEnterすると抜ける |\n| 番号付き | `1. 項目` | 番号は表示時に1から振り直す。`1.` だけで書いてもよい |\n| チェックボックス | `- [ ] やること` | 四角をクリックで切り替え |\n| 太字 | `**文字**` | Ctrl/⌘+B |\n| 斜体 | `*文字*` | Ctrl/⌘+I |\n| コード | `` `文字` `` | Ctrl/⌘+E |\n| 取り消し線 | `~~文字~~` |  |\n| リンク | `[文字](https://…)` | Ctrl/⌘を押しながらクリックで開く |\n| 引用 | `> 文章` |  |\n| コードブロック | ```` ``` ```` で囲む | 中ではEnterが改行。閉じの ```` ``` ```` の行末でEnterで抜ける |\n| 区切り線 | `---` |  |\n\n- Ctrl/⌘+B（太字）・I（斜体）・E（コード）は切り替えです。文字を選んでから押すとその部分を囲み、もう一度押すと囲みが外れます。何も選ばずに押すと記号だけが入り、そのまま打てます\n- 箇条書きの中でTab：字下げ。Shift+Tabで戻す。番号付きは字下げすると `1.` から\n- Shift+Enter：同じ行の中で改行\n- 行頭でBackspace：前の行とつなぐ\n- Esc：編集をやめる。そのあとEnterで同じ場所に戻ります。↑↓←→を押すと、カーソルがそのまま動いたように上下の行や前後の文字へ入ります（マウスは要りません）\n\n## 表の書き方\n\n`| 名前 | 点数` と書いてEnterを押すと、行末の `|` と区切り行 `| --- | --- |` が自動で入り、次の行が `| ` で始まります。あとはセルを `|` で区切りながら書き、Enterで次の行へ。行頭に `|` だけの状態でEnterを押すと表を抜けます。\n\n- Tab／Shift+Tab：次／前のセルへ。最後のセルでTabするとセルを追加\n- 編集を終えると縦線が揃うよう自動で整形\n- 区切り行を `:---` `:---:` `---:` にすると左寄せ・中央・右寄せ\n- セルの中に `|` を書くときは `\\|`\n\n## 検索と置換\n\n**このメモ内**：上部の「検索」か Ctrl/⌘+F。Ctrl/⌘+H で置換欄も開きます（バー内の「置換」でも切り替え）。\n\n- Aa：大文字と小文字を区別、.*：正規表現\n- Enter／↓で次、Shift+Enter／↑で前。該当する行は薄く色が付き、いま見ている一致はその行の元のMarkdownの中で反転\n- Esc：閉じて、その一致箇所を選択した状態で編集に入る\n- 置換：1件ずつ（置換後は次へ進む）。すべて置換：一括。Undoで戻せる。正規表現なら `$1` で捕捉した文字を使える\n\n**すべてのメモ**：サイドバー上の検索欄（Ctrl/⌘+Shift+F）。該当するメモだけが件数と抜粋つきで並びます。3件まで表示し、「さらに表示」で残りを開きます。クリックするとそのメモが開き、同じ検索語がメモ内検索に引き継がれます。\n\n## 行の選択\n\n編集中の行でShift+↓（行末側）／Shift+↑（行頭側）を押すと、行単位の選択が始まります。続けてShift+↑↓で範囲を伸ばしたり縮めたりできます。\n\n- Ctrl/⌘+C：選択した行のMarkdownをコピー\n- Ctrl/⌘+X、Backspace、Delete：選択した行を削除\n- Tab／Shift+Tab、Alt+Shift+→／←：選択した行をまとめて字下げ／戻す\n- Alt+Shift+↑／↓：選択した行をまとめて上下に移動\n- 文字を打つ、Enter：選択行を消してその場で入力を始める\n- Esc、矢印キー、クリック：選択を解除\n- Ctrl/⌘+A：メモの全行を選択（そのままCtrl/⌘+Cで全体をコピー）\n\n行の途中から別の行の途中まで、という文字単位の選択はできません。\n\n## メモの管理とロック\n\n- 新しいメモ：「＋ 新しいメモ」（一覧の先頭に入ります）\n- 並べ替え：一覧の項目をドラッグして好きな位置へ。スマホでは項目を長押しして持ち上げてから指を動かす（端まで運ぶと一覧がスクロール）。更新しても並びは変わりません\n- 削除：一覧の項目にマウスを乗せて「×」→「削除する」\n- ロック：上部の鍵をクリック。ロック中は本文を編集・削除できません。閲覧・検索・コピー・.md保存はできます。もう一度クリックで解除\n- 元に戻す／やり直す：↶ ↷、Ctrl/⌘+Z、Ctrl/⌘+Shift+Z（Ctrl+Y）。履歴はメモごと\n- Markdownを表示：メモ全体を生のMarkdownとして表示・編集\n- ？：この使い方を開く（削除されていれば入れ直す）\n\n## ファイルの読み込みと書き出し\n\n上部バーの「ファイル」（スマホは「…」）にまとまっています。1ファイル＝1メモです。\n\n| メニュー | すること |\n| --- | --- |\n| 指定したファイルを開く | 選んだ.md／.txt（複数可）をメモとして追加 |\n| .zip内のすべての.mdを開く | .zipの中の.mdをすべてメモとして追加（書き出した控えを戻すとき） |\n| フォルダ内のすべての.mdを開く | 選んだフォルダの.mdをすべて一度だけ読み込む（Chrome/Edge） |\n| このファイルを.mdで保存 | 表示中のメモを.mdファイルとしてダウンロード |\n| すべてのファイルを保存 → フォルダへ書き出し | 選んだフォルダに全メモを `タイトル.md` として一度だけ書き出す（Chrome/Edge） |\n| すべてのファイルを保存 → .zipで保存 | 全メモを1つの.zipにまとめる。スマホでは共有シートが開くので、ファイルアプリやクラウドにそのまま送れる |\n\n- .mdや.txt、.zipを画面にドラッグして落としても追加できます\n- すでに同じ内容のメモがあるファイルは飛ばします。控えを読み直しても二重になりません\n- フォルダへの書き出し・読み込みは一回きりで、そのフォルダを保存先にはしません\n- スマホの「…」には「すべてをコピー」もあり、表示中のメモのMarkdownをまるごとクリップボードへ送れます\n\n## 保存先\n\n最初に開いたとき（Chrome/Edgeでパソコンに置いたHTMLを開いた場合）に、保存先を選ぶ画面が出ます。\n\n- ブラウザに保存：このブラウザの中に保存。ファイルは作らない。最後の変更から0.4秒後に自動保存\n- フォルダに保存：選んだフォルダに各メモを `タイトル.md` として保存。最後の変更から0.7秒後に書き戻し。最初の行を変えるとファイル名も追従、削除するとファイルも消える。フォルダに他のエディタで.mdを追加すると「再読み込み」で取り込む\n\nいまの保存先はサイドバー下に「ブラウザ（ローカルストレージ）」または「ローカルPC（フォルダ名）」と出ています。「保存先の切り替え」で変えられます。\n\n- ブラウザ → ローカルPC：フォルダを選ぶと、いまのメモをそのフォルダに書き出し、フォルダにある.mdも読み込みます\n- ローカルPC → ブラウザ：「切り替える」を押すと、以後はブラウザに保存します。メモはブラウザに残り、フォルダの.mdも消えません\n\nブラウザを開き直したときなどにフォルダへの許可が切れていると、再接続を促す画面が出ます。「接続する」で保存を再開します。「あとで」を選ぶとサイドバー下に「未接続」と出て、接続するまで変更はブラウザにだけ残ります（接続したときにフォルダへ反映します）。\n\nフォルダ保存はChrome/Edge限定で、Claude上の公開版・Firefox・Safari・スマホでは「保存先の切り替え」は出ません。ブラウザの閲覧データを消すとブラウザ内のメモは消えるので、大事なものはフォルダ保存か、「ファイル」→「すべてのファイルを保存」で控えを。\n\n**フォルダ保存中に食い違ったとき**：ブラウザ側と.mdファイルの両方が変わっていたら、更新が新しいほうを残し、負けたほうを「○○（ブラウザ側の写し）」「○○（フォルダ側の写し）」という別のメモにします。どちらの内容も消えません。\n\n## ショートカットキーの変更\n\n左上の「⚙」→「キーボード」で、ショートカットキーを変えられます（このブラウザにだけ保存されます）。\n\n| 操作 | 場面 | 既定 |\n| --- | --- | --- |\n| このメモ内を検索／置換／すべてのメモを検索 | いつでも | Ctrl/⌘+F／+H／+Shift+F |\n| 元に戻す／やり直す | いつでも | Ctrl/⌘+Z／+Shift+Z |\n| サイドバーの表示 | いつでも | Ctrl/⌘+`\\` |\n| 保存 | いつでも | Ctrl/⌘+S |\n| 全行を選択 | いつでも | Ctrl/⌘+A |\n| 太字／斜体／コード | 編集中 | Ctrl/⌘+B／+I／+E |\n| 取り消し線 | 編集中 | （なし） |\n| 引用の付け外し | 編集中・行選択中 | （なし） |\n| リンクの挿入 | 編集中 | （なし） |\n\n- 「変更」を押してから、割り当てたいキーを押します。Escでやめられます\n- 「なし」で割り当てを消せます。「既定」でその行だけ元に戻り、右上の「すべて既定に戻す」で全部戻ります\n- すでに使われているキーを押すと、その場では変わりません。もう一度同じキーを押すと、そちらへ移ります\n- Enter・Tab・Esc・Backspace・矢印キーは本文の操作に使うので割り当てられません。修飾キー（Ctrl/⌘・Alt・Shift）との組み合わせだけが使えます\n- Ctrl+TやCtrl+Wなど、ブラウザが先に使うキーは効かないことがあります\n- 取り消し線・引用・リンクは、キーを割り当てると使えるようになります。リンクは、文字を選んでいれば `[選んだ文字]()` にしてURLの位置にカーソルが入り、選んでいなければ `[]()` を入れて文字の位置から書き始められます（続けてもう一度押すと取り消せます）\n- 画面が狭いときは、この設定は表示されません\n\n## 困ったときは\n\n- 書式が効かない：`#` や `-` のあとに半角スペースが必要です\n- 表にならない：見出し行の次に `| --- | --- |` の区切り行が必要です。`|` や `-` が全角になっていないか確認してください\n- 「保存先の切り替え」が出ない：ChromeかEdgeで、パソコンに置いたHTMLを直接開いているか確認してください\n- フォントが違って見える：オフラインではWebフォントが読めず、端末の標準フォントで表示されます";
+const MANUAL_VER = 8;
 const SAMPLE = [
   '# メモ帳へようこそ',
   '',
@@ -594,8 +612,17 @@ function leaveEditWith(el, raw) {
   if (editingEl === el) editingEl = null;
   renderEl(el, raw);
 }
+// where the caret was when editing last stopped, so the keyboard alone can pick it up again
+let resume = null;
+function markResume(el, off) {
+  const i = blockIdx(el); if (i < 0) return;
+  // Esc records the caret first, then the focusout that follows must not overwrite it
+  if (off == null) off = resume && resume.idx === i ? resume.off : readRaw(el).length;
+  resume = { idx: i, off };
+}
 function leaveEdit(el) {
   const before = el._raw, raw = readRaw(el);
+  markResume(el, document.activeElement === el ? caretOffset(el) : null);
   leaveEditWith(el, raw);
   syncBlocks(raw !== before ? 'type' : null);
 }
@@ -638,16 +665,81 @@ $('#undo').addEventListener('mousedown', e => e.preventDefault());
 $('#redo').addEventListener('mousedown', e => e.preventDefault());
 $('#undo').addEventListener('click', undo);
 $('#redo').addEventListener('click', redo);
+/* ---------- shortcuts ---------- */
+// every rebindable command. `def` is the shipped key ('' = none); settings.keys holds only what the user changed
+const IS_MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+const CMDS = [
+  { id: 'find', label: 'このメモ内を検索', scope: 'any', def: 'Ctrl+F' },
+  { id: 'replace', label: '置換', scope: 'any', def: 'Ctrl+H' },
+  { id: 'findAll', label: 'すべてのメモを検索', scope: 'any', def: 'Ctrl+Shift+F' },
+  { id: 'undo', label: '元に戻す', scope: 'any', def: 'Ctrl+Z' },
+  { id: 'redo', label: 'やり直す', scope: 'any', def: 'Ctrl+Shift+Z', alias: ['Ctrl+Y'] },
+  { id: 'sidebar', label: 'サイドバーの表示', scope: 'any', def: 'Ctrl+\\', alias: ['Ctrl+¥', 'Ctrl+_'] },
+  { id: 'save', label: '保存', scope: 'any', def: 'Ctrl+S' },
+  { id: 'selectAll', label: '全行を選択', scope: 'any', def: 'Ctrl+A' },
+  { id: 'bold', label: '太字', scope: 'edit', def: 'Ctrl+B' },
+  { id: 'italic', label: '斜体', scope: 'edit', def: 'Ctrl+I' },
+  { id: 'code', label: 'コード', scope: 'edit', def: 'Ctrl+E' },
+  { id: 'strike', label: '取り消し線', scope: 'edit', def: '' },
+  { id: 'quote', label: '引用の付け外し', scope: 'lines', def: '' },
+  { id: 'link', label: 'リンクの挿入', scope: 'edit', def: '' },
+];
+const cmdById = id => CMDS.find(c => c.id === id);
+const keyOf = id => { const c = cmdById(id); const k = settings.keys && settings.keys[id]; return k === undefined ? c.def : k; };
+// "Ctrl+Shift+F" — ⌘ and Ctrl are both written Ctrl, so one setting works on either platform
+function keyName(e) {
+  if (['Control', 'Shift', 'Alt', 'Meta', 'Dead', 'Process'].includes(e.key)) return '';
+  const p = [];
+  if (e.ctrlKey || e.metaKey) p.push('Ctrl');
+  if (e.altKey) p.push('Alt');
+  if (e.shiftKey) p.push('Shift');
+  let k = e.key; if (k === ' ') k = 'Space'; else if (k.length === 1) k = k.toUpperCase();
+  p.push(k);
+  return p.join('+');
+}
+const keyLabel = name => !name ? '—' : IS_MAC ? name.replace('Ctrl', '⌘').replace('Alt', '⌥').replace('Shift', '⇧') : name;
+// which command this keystroke is, in the given place ('any' | 'edit' | 'lines')
+function matchCmd(e, scope) {
+  const name = keyName(e); if (!name) return null;
+  for (const c of CMDS) {
+    if (c.scope !== 'any' && c.scope !== scope && !(c.scope === 'lines' && scope === 'edit')) continue;
+    if (c.scope === 'edit' && scope === 'lines') continue;
+    const k = keyOf(c.id); if (!k) continue;
+    if (k === name || (c.alias || []).includes(name)) return c.id;
+  }
+  return null;
+}
 document.addEventListener('keydown', e => {
-  if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
-  const k = e.key.toLowerCase();
-  if (k === 'f' && e.shiftKey) { e.preventDefault(); if (document.body.classList.contains('side-hidden')) toggleSide(); sideEl.classList.add('open'); backdrop.classList.add('show'); gq.focus(); gq.select(); return; }
+  const cmd = matchCmd(e, 'any');
+  if (!cmd) return;
+  if (cmd === 'findAll') { e.preventDefault(); if (document.body.classList.contains('side-hidden')) toggleSide(); sideEl.classList.add('open'); backdrop.classList.add('show'); gq.focus(); gq.select(); return; }
   if (e.target === sourceEl) return; // textarea keeps its native undo and find
-  // Ctrl+A with no line open still selects the whole note (while editing, the blocks handler does it)
-  if (k === 'a' && !e.shiftKey && !editingEl && !bsel && !document.body.classList.contains('src') && (e.target === document.body || $('#editor').contains(e.target)) && !document.querySelector('.modal:not([hidden])')) { e.preventDefault(); bselStart(0, nBlocks() - 1); return; }
-  if (k === 'f' || k === 'h') { if (document.body.classList.contains('src')) return; e.preventDefault(); openFind(k === 'h'); return; }
-  if (k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
-  else if (k === 'y') { e.preventDefault(); redo(); }
+  // "select every line" with no line open (while editing, the blocks handler takes it)
+  if (cmd === 'selectAll' && !editingEl && !bsel && !document.body.classList.contains('src') && (e.target === document.body || $('#editor').contains(e.target)) && !document.querySelector('.modal:not([hidden])')) { e.preventDefault(); bselStart(0, nBlocks() - 1); return; }
+  if (cmd === 'find' || cmd === 'replace') { if (document.body.classList.contains('src')) return; e.preventDefault(); openFind(cmd === 'replace'); return; }
+  if (cmd === 'undo') { e.preventDefault(); undo(); }
+  else if (cmd === 'redo') { e.preventDefault(); redo(); }
+});
+// nothing is open (after Esc): Enter or an arrow key goes back to the line we left
+document.addEventListener('keydown', e => {
+  if (editingEl || bsel || e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
+  if (document.body.classList.contains('src')) return;
+  if (document.querySelector('.modal:not([hidden])')) return;
+  const t = e.target;
+  if (t !== document.body && t !== blocksEl && t !== editorEl && t !== pageEl) return; // inputs and buttons keep their own keys
+  if (!['Enter', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+  const n = nBlocks(); if (!n) return;
+  e.preventDefault();
+  if (isLocked()) { lockedToast(); return; }
+  let idx = resume ? Math.min(resume.idx, n - 1) : 0, off = resume ? resume.off : 0;
+  const len = i => (blocksEl.children[i]._raw || '').length;
+  off = Math.min(off, len(idx));
+  // the caret keeps moving as if it had never left: ↑↓ change the line, ←→ step one character
+  if (e.key === 'ArrowUp') idx = Math.max(0, idx - 1);
+  else if (e.key === 'ArrowDown') idx = Math.min(n - 1, idx + 1);
+  else if (e.key === 'ArrowLeft') { if (off > 0) off--; else if (idx > 0) { idx--; off = len(idx); } }
+  else if (e.key === 'ArrowRight') { if (off < len(idx)) off++; else if (idx < n - 1) { idx++; off = 0; } }
+  enterEdit(blocksEl.children[idx], off);
 });
 blocksEl.addEventListener('beforeinput', e => {
   if (e.inputType === 'historyUndo') { e.preventDefault(); undo(); }
@@ -839,6 +931,42 @@ function wrapSel(el, m) {
     setSelectionRange(el, start + L, end + L);
   } else { insertText(m + m); setCaret(el, start + L); }
 }
+// > の付け外し。1行でも欠けていれば全部に足し、揃っていれば外す（Tab の字下げと同じ考え方）
+function quoteBlocks(a, b, caretOff) {
+  if (isLocked()) { lockedToast(); return; }
+  const els = [...blocksEl.children].slice(a, b + 1).filter(el => el._raw !== '' || a === b);
+  if (!els.length) return;
+  const q = /^\s*>\s?/;
+  const add = els.some(el => !q.test(el._raw));
+  const editing = editingEl && els.includes(editingEl) ? editingEl : null;
+  const sel = editing ? selOffsets(editing) : null;
+  for (const el of els) {
+    const raw = el._raw;
+    const next = add ? '> ' + raw : raw.replace(q, '');
+    if (el === editing) {
+      const d = next.length - raw.length, fix = o => Math.max(0, Math.min(next.length, o + d));
+      setSelectionRange(el, 0, raw.length); insertText(next);
+      if (sel[0] !== sel[1]) setSelectionRange(el, fix(sel[0]), fix(sel[1])); // keep what was selected
+      else setCaret(el, fix(caretOff == null ? raw.length : caretOff));
+    } else renderEl(el, next);
+  }
+  if (bsel) bselRender();
+  syncBlocks('edit');
+}
+// [文字](URL) を入れる。選択があればそれを文字に、無ければ [ ] の中から書き始める
+function insertLink(el) {
+  if (isLocked()) { lockedToast(); return; }
+  const raw = readRaw(el), [s, t] = selOffsets(el);
+  if (s === t) { // the empty link a previous press made: take it back
+    for (const p of [s - 1, s - 3]) {
+      if (p >= 0 && raw.slice(p, p + 4) === '[]()') { setSelectionRange(el, p, p + 4); insertText(''); setCaret(el, p); return; }
+    }
+  }
+  breakMerge = true;
+  const text = raw.slice(s, t);
+  insertText('[' + text + ']()');
+  setCaret(el, s + (text ? text.length + 3 : 1)); // inside ( ) when there was text, inside [ ] when not
+}
 function toggleTask(el) {
   el._raw = el._raw.replace(/^(\s*[-*+]\s+\[)([ xX])(\])/, (m, a, b, c) => a + (b === ' ' ? 'x' : ' ') + c);
   renderEl(el, el._raw); syncBlocks();
@@ -914,12 +1042,14 @@ blocksEl.addEventListener('keydown', e => {
   if (e.isComposing) return;
   const raw = readRaw(el), off = caretOffset(el), info = blockInfo(raw), collapsed = getSelection().isCollapsed;
 
-  if ((e.metaKey || e.ctrlKey) && !e.altKey) {
-    const k = e.key.toLowerCase(), m = { b: '**', i: '*', e: '`' }[k];
+  if (e.ctrlKey || e.metaKey || e.altKey) {
+    const cmd = matchCmd(e, 'edit'), m = { bold: '**', italic: '*', code: '`', strike: '~~' }[cmd];
     if (m) { e.preventDefault(); wrapSel(el, m); return; }
-    if (k === 'a') { e.preventDefault(); bselStart(0, nBlocks() - 1); return; }
-    if (k === 's') { e.preventDefault(); persist(); toast('保存しました'); return; }
-    return;
+    if (cmd === 'link') { e.preventDefault(); insertLink(el); return; }
+    if (cmd === 'quote') { e.preventDefault(); quoteBlocks(blockIdx(el), blockIdx(el), caretOffset(el)); return; }
+    if (cmd === 'selectAll') { e.preventDefault(); bselStart(0, nBlocks() - 1); return; }
+    if (cmd === 'save') { e.preventDefault(); persist(); toast('保存しました'); return; }
+    if (e.ctrlKey || e.metaKey) return; // other Ctrl combos are none of our business
   }
   const lineStart = raw.lastIndexOf('\n', off - 1) + 1, lineEndIdx = raw.indexOf('\n', off), lineEnd = lineEndIdx < 0 ? raw.length : lineEndIdx;
   const curLine = raw.slice(lineStart, lineEnd), lineNo = raw.slice(0, lineStart).split('\n').length - 1;
@@ -995,7 +1125,7 @@ blocksEl.addEventListener('keydown', e => {
     } else insertText('  ');
     return;
   }
-  if (e.key === 'Escape') { el.blur(); return; }
+  if (e.key === 'Escape') { markResume(el, caretOffset(el)); el.blur(); return; }
   if (e.key === 'ArrowLeft' && !e.shiftKey && collapsed && off === 0 && el.previousElementSibling) { e.preventDefault(); enterEdit(el.previousElementSibling); return; }
   if (e.key === 'ArrowRight' && !e.shiftKey && collapsed && off === raw.length && el.nextElementSibling) { e.preventDefault(); enterEdit(el.nextElementSibling, 0); return; }
   if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && e.shiftKey && e.altKey) { e.preventDefault(); moveBlocks(e.key === 'ArrowDown' ? 1 : -1); return; }
@@ -1087,11 +1217,12 @@ document.addEventListener('keydown', e => {
   const t = e.target; if (t === gq || t === fq || t === fr || t === sourceEl || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA') return;
   const k = e.key;
   if (e.metaKey || e.ctrlKey) {
-    const kk = k.toLowerCase();
+    const kk = k.toLowerCase(), cmd = matchCmd(e, 'lines');
     if (kk === 'c') { e.preventDefault(); copyText(bselText()); toast('コピーしました'); return; }
     if (kk === 'x') { e.preventDefault(); copyText(bselText()); bselDelete(false); return; }
-    if (kk === 'a') { e.preventDefault(); bsel = { anchor: 0, head: nBlocks() - 1 }; bselRender(); return; }
-    if (kk === 'z' || kk === 'y') { bselClear(); return; } // the undo handler takes it from here
+    if (cmd === 'quote') { const [a, b] = bselRange(); e.preventDefault(); quoteBlocks(a, b); return; }
+    if (cmd === 'selectAll') { e.preventDefault(); bsel = { anchor: 0, head: nBlocks() - 1 }; bselRender(); return; }
+    if (cmd === 'undo' || cmd === 'redo') { bselClear(); return; } // the undo handler takes it from here
     return;
   }
   if (k === 'ArrowDown' || k === 'ArrowUp') {
@@ -1402,7 +1533,7 @@ listEl.addEventListener('touchcancel', () => { if (touchDnd && touchDnd.active) 
 listEl.addEventListener('contextmenu', e => { if (touchDnd) e.preventDefault(); }); // long-press menu on Android
 function openNote(id) {
   if (editingEl) leaveEdit(editingEl);
-  currentId = id; confirmId = null;
+  currentId = id; confirmId = null; resume = null; // each note starts at its first line
   renderNote(); renderList(); persist();
 }
 function deleteNote(id) {
@@ -1467,7 +1598,60 @@ function applySettings() {
 }
 const settingsEl = $('#settings');
 function fillSelect(sel, list, val) { sel.innerHTML = list.map(f => '<option value="' + f.id + '"' + (f.id === val ? ' selected' : '') + '>' + f.label + '</option>').join(''); }
+const SCOPE_LABEL = { any: 'いつでも', edit: '編集中', lines: '編集中・行選択中' };
+let keyWaiting = null, keyArmed = null; // the command we are listening for, and a clash waiting to be confirmed
+function renderKeys() {
+  $('#keysSection').hidden = matchMedia('(max-width:720px)').matches; // no use without a keyboard
+  const list = $('#keysList');
+  list.innerHTML = CMDS.map(c => {
+    const k = keyOf(c.id), changed = settings.keys && settings.keys[c.id] !== undefined;
+    return '<div class="krow" data-id="' + c.id + '"><span class="kl">' + esc(c.label) + '</span>'
+      + '<span class="kw">' + SCOPE_LABEL[c.scope] + '</span>'
+      + '<span class="kk' + (k ? '' : ' none') + '">' + esc(keyLabel(k)) + '</span>'
+      + '<button class="btn" data-k="set">変更</button>'
+      + '<button class="btn" data-k="clear"' + (k ? '' : ' disabled') + '>なし</button>'
+      + '<button class="btn" data-k="def"' + (changed ? '' : ' disabled') + '>既定</button></div>';
+  }).join('');
+}
+function setKey(id, name) {
+  settings.keys = settings.keys || {};
+  if (name === null) delete settings.keys[id]; else settings.keys[id] = name;
+  saveSettings(); renderKeys();
+}
+$('#keysList').addEventListener('click', e => {
+  const btn = e.target.closest('[data-k]'), row = e.target.closest('.krow'); if (!btn || !row) return;
+  const id = row.dataset.id;
+  if (btn.dataset.k === 'clear') { setKey(id, ''); return; }
+  if (btn.dataset.k === 'def') { setKey(id, null); return; }
+  keyWaiting = id; keyArmed = null; renderKeys();
+  const r = $('#keysList .krow[data-id="' + id + '"]');
+  r.classList.add('waiting'); r.querySelector('.kk').textContent = 'キーを押してください';
+});
+// while waiting, the next keystroke becomes the binding (Esc cancels)
+document.addEventListener('keydown', e => {
+  if (!keyWaiting || settingsEl.hidden) return;
+  e.preventDefault(); e.stopPropagation();
+  if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
+  const id = keyWaiting, name = keyName(e);
+  if (e.key === 'Escape') { keyWaiting = keyArmed = null; renderKeys(); return; }
+  if (!(e.ctrlKey || e.metaKey || e.altKey) || ['Enter', 'Tab', 'Backspace', 'Delete', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+    toast('そのキーは本文の操作に使うので割り当てられません', 2600); return;
+  }
+  const mine = cmdById(id);
+  const clash = CMDS.find(c => c.id !== id && keyOf(c.id) === name && (c.scope === mine.scope || c.scope === 'any' || mine.scope === 'any'));
+  if (clash && keyArmed !== id + ' ' + name) { // press the same key again to take it away from the other command
+    keyArmed = id + ' ' + name;
+    toast(keyLabel(name) + ' は「' + clash.label + '」に割り当たっています。もう一度同じキーを押すと移します', 4000);
+    return;
+  }
+  if (clash) setKey(clash.id, '');
+  keyWaiting = null; keyArmed = null; setKey(id, name);
+  if (['Ctrl+T', 'Ctrl+N', 'Ctrl+W', 'Ctrl+Q', 'Ctrl+Shift+T', 'Ctrl+Shift+N', 'Ctrl+Shift+W'].includes(name)) toast('このキーはブラウザが先に使うため、効かないことがあります', 3500);
+  else if (id === 'undo' && !name) toast('「元に戻す」を空にしました', 2200);
+}, true);
+$('#keysReset').addEventListener('click', () => { delete settings.keys; saveSettings(); renderKeys(); });
 function renderSettings() {
+  renderKeys();
   fillSelect($('#sBody'), BODY_FONTS, settings.body); fillSelect($('#sMono'), MONO_FONTS, settings.mono);
   $('#sBodyCustomRow').hidden = settings.body !== 'custom'; $('#sMonoCustomRow').hidden = settings.mono !== 'custom';
   $('#sBodyCustom').value = settings.bodyCustom; $('#sMonoCustom').value = settings.monoCustom;
@@ -1495,7 +1679,7 @@ $('#devReset').addEventListener('click', async () => {
 $('#sClose').addEventListener('click', () => { settingsEl.hidden = true; });
 settingsEl.addEventListener('click', e => { if (e.target === settingsEl) settingsEl.hidden = true; });
 settingsEl.addEventListener('keydown', e => { if (e.key === 'Escape') settingsEl.hidden = true; });
-$('#sReset').addEventListener('click', () => { settings = { ...DEFAULT_SETTINGS }; saveSettings(); renderSettings(); applySettings(); });
+$('#sReset').addEventListener('click', () => { const keys = settings.keys; settings = { ...DEFAULT_SETTINGS }; if (keys) settings.keys = keys; saveSettings(); renderSettings(); applySettings(); }); // 見た目だけ戻す。キー割り当ては「すべて既定に戻す」で
 $('#sBody').addEventListener('change', e => { settings.body = e.target.value; $('#sBodyCustomRow').hidden = settings.body !== 'custom'; saveSettings(); applySettings(); if (settings.body === 'custom') $('#sBodyCustom').focus(); });
 $('#sMono').addEventListener('change', e => { settings.mono = e.target.value; $('#sMonoCustomRow').hidden = settings.mono !== 'custom'; saveSettings(); applySettings(); if (settings.mono === 'custom') $('#sMonoCustom').focus(); });
 $('#sBodyCustom').addEventListener('input', e => { settings.bodyCustom = e.target.value; saveSettings(); applySettings(); });
