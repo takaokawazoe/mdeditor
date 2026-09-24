@@ -1,12 +1,13 @@
 import asyncio
 from playwright.async_api import async_playwright
+from helpers import set_md
 async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch(); ctx = await b.new_context(permissions=['clipboard-read','clipboard-write']); pg = await ctx.new_page()
         pg.on("pageerror", lambda e: print("pageerror:", e))
         await pg.goto("file://" + __import__("os").path.abspath(__import__("os").path.join(__import__("os").path.dirname(__file__), "..", "index.html")) + ""); await pg.wait_for_timeout(300)
         await pg.click('[data-choice=browser]'); await pg.click('#newNote')
-        await pg.evaluate("md=>{document.getElementById('toggleSrc').click();const t=document.getElementById('source');t.value=md;t.dispatchEvent(new Event('input'));document.getElementById('toggleSrc').click();}", '# 見出し\n\n- a\n- b\n- c\n\n段落')
+        await set_md(pg, '# 見出し\n\n- a\n- b\n- c\n\n段落')
         raws = "[...document.querySelectorAll('#blocks .block')].map(b=>b._raw)"
         sel = "[...document.querySelectorAll('#blocks .block')].map((b,i)=>b.classList.contains('bsel')?i:null).filter(i=>i!==null)"
         await pg.click('#blocks .block:nth-child(3)'); await pg.keyboard.press('End')

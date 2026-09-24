@@ -3,6 +3,7 @@
 # so file mtimes are ours to set and every case below is deterministic.
 import asyncio, os
 from playwright.async_api import async_playwright
+from helpers import set_md, CUR_MD, CUR_FILE, CUR_FS_MTIME
 
 URL = "file://" + os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "index.html"))
 
@@ -66,7 +67,7 @@ MAKE_ZIP = """
 """
 
 TITLES = "[...document.querySelectorAll('#list .t')].map(e=>e.textContent.replace('🔒',''))"
-SRC = "document.getElementById('source').value"
+SRC = CUR_MD
 TOAST = "document.getElementById('toast').textContent"
 
 errors = []
@@ -75,11 +76,11 @@ def check(name, cond, detail=''):
     if not cond: errors.append(name)
 
 async def set_src(pg, md):
-    await pg.evaluate("md=>{document.getElementById('toggleSrc').click();const t=document.getElementById('source');t.value=md;t.dispatchEvent(new Event('input'));document.getElementById('toggleSrc').click();}", md)
+    await set_md(pg, md)
 
 async def main():
     async with async_playwright() as p:
-        b = await p.chromium.launch(); ctx = await b.new_context(); pg = await ctx.new_page()
+        b = await p.chromium.launch(); ctx = await b.new_context(permissions=['clipboard-read','clipboard-write']); pg = await ctx.new_page()
         pg.on("pageerror", lambda e: errors.append('pageerror: ' + str(e)) or print("PAGEERROR", e))
         await pg.add_init_script(FAKE_FS)
         await pg.goto(URL); await pg.wait_for_timeout(400)
@@ -90,12 +91,16 @@ async def main():
         await pg.click('[data-choice=folder]'); await pg.wait_for_timeout(1400)
         check('folder connected and notes written', await pg.evaluate("__fs.files.size") >= 1, await pg.evaluate("[...__fs.files.keys()]"))
 
+        # a note of our own to fight over (the bundled manual is locked)
+        await pg.click('#newNote'); await pg.keyboard.type('テスト用のメモ'); await pg.wait_for_timeout(1400)
+
         # --- conflict: the folder copy is newer -> it wins, the browser text survives as a copy
         md0 = await pg.evaluate(SRC)
         key = await pg.evaluate("md=>[...__fs.files.entries()].find(([k,v])=>v.text===md)?.[0]", md0)
         check('current note is on disk', bool(key), await pg.evaluate("[...__fs.files.keys()]"))
-        await set_src(pg, md0 + '\n\nブラウザ側の追記'); await pg.wait_for_timeout(80)
-        await pg.evaluate("k=>__fs.files.set(k,{text:'# フォルダで書き換えた\\n\\n外から',mtime:Date.now()+1})", key)
+        await set_src(pg, md0 + '\n\nブラウザ側の追記'); await pg.wait_for_timeout(1000)  # let the write-back settle first
+        key = await pg.evaluate(CUR_FILE)
+        await pg.evaluate("k=>__fs.files.set(k,{text:'# フォルダで書き換えた\\n\\n外から',mtime:Date.now()+50})", key)
         await pg.click('#fs [data-act=reload]'); await pg.wait_for_timeout(900)
         check('folder version adopted', (await pg.evaluate(SRC)).startswith('# フォルダで書き換えた'), (await pg.evaluate(SRC))[:40])
         check('browser side kept as a copy', any('ブラウザ側の写し' in t for t in await pg.evaluate(TITLES)), await pg.evaluate(TITLES))
@@ -105,11 +110,14 @@ async def main():
         await pg.click('#list .item[data-id="' + keep + '"] .open'); await pg.wait_for_timeout(1400)
 
         # --- conflict: the browser copy is newer -> it wins and is written back, the folder text survives
-        md1 = await pg.evaluate(SRC)
-        key = await pg.evaluate("md=>[...__fs.files.entries()].find(([k,v])=>v.text===md)?.[0]", md1)
         await pg.wait_for_timeout(300)
-        await set_src(pg, md1 + '\n\n後から追記'); await pg.wait_for_timeout(80)
-        await pg.evaluate("k=>__fs.files.set(k,{text:'# 少し古いフォルダ版',mtime:Date.now()-150})", key)
+        key = await pg.evaluate(CUR_FILE)
+        # the folder changes first, then the browser — so the browser side is the newer of the two
+        # newer than what the app recorded (so the folder counts as changed), but older than the edit below
+        mt = await pg.evaluate(CUR_FS_MTIME)
+        await pg.evaluate("([k,mt])=>__fs.files.set(k,{text:'# 少し古いフォルダ版',mtime:mt+1})", [key, mt])
+        await pg.click('#blocks .block:nth-child(1)'); await pg.keyboard.press('End'); await pg.keyboard.type('後から追記')
+        await pg.wait_for_timeout(80)
         await pg.click('#fs [data-act=reload]'); await pg.wait_for_timeout(1400)
         check('browser version kept', '後から追記' in await pg.evaluate(SRC), (await pg.evaluate(SRC))[-30:])
         check('folder side kept as a copy', any('フォルダ側の写し' in t for t in await pg.evaluate(TITLES)), await pg.evaluate(TITLES))

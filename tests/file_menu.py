@@ -1,5 +1,6 @@
 import asyncio
 from playwright.async_api import async_playwright
+from helpers import set_md
 # file menu, sidebar hide, Ctrl+A, Alt+Shift+←→, storage panel + switch / reconnect dialogs
 # needs `python3 -m http.server 8123` (the folder picker is emulated with OPFS, like folder_sync.py)
 URL = "http://localhost:8123/index.html"
@@ -12,18 +13,17 @@ def check(label, cond, extra=''):
     print(('OK  ' if cond else 'NG  ') + label + ('' if cond else '  -> ' + str(extra)))
     if not cond: errors.append(label)
 RAWS = "[...document.querySelectorAll('#blocks .block')].map(e=>e._raw)"
-MERGED = "document.querySelector('#blocks .merged')?._raw ?? null"
 SEL = "[...document.querySelectorAll('#blocks .block')].map((e,i)=>e.classList.contains('bsel')?i:-1).filter(i=>i>=0)"
 async def setmd(pg, md):
     await pg.click('#newNote')
-    await pg.evaluate("md=>{document.getElementById('toggleSrc').click();const t=document.getElementById('source');t.value=md;t.dispatchEvent(new Event('input'));document.getElementById('toggleSrc').click();}", md)
+    await set_md(pg, md)
 async def idle(pg):  # no line open, nothing selected, focus on the page body
     if await pg.evaluate("!!document.querySelector('#blocks .bsel')"): await pg.keyboard.press('Escape')
     await pg.click('#title'); await pg.wait_for_timeout(50)
 async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch()
-        ctx = await b.new_context(viewport={'width': 1200, 'height': 800}); pg = await ctx.new_page()
+        ctx = await b.new_context(viewport={'width': 1200, 'height': 800}, permissions=['clipboard-read','clipboard-write']); pg = await ctx.new_page()
         pg.on("pageerror", lambda e: errors.append('pageerror: ' + str(e)) or print("PAGEERROR", e))
         await pg.add_init_script(PICKER)
         await pg.goto(URL); await pg.wait_for_timeout(400); await pg.click('[data-choice=browser]')
@@ -63,15 +63,13 @@ async def main():
         check('Ctrl+A with no line open selects all lines', await pg.evaluate(SEL) == [0, 1, 2, 3], await pg.evaluate(SEL))
 
         # --- Alt+Shift+→/← indent the selection
-        await pg.click('#blocks .block:nth-child(2)'); await pg.keyboard.press('Home'); await pg.keyboard.press('Shift+ArrowDown')
-        check('the selection reaches the next line', '\n' in await pg.evaluate("getSelection().toString()"), await pg.evaluate("getSelection().toString()"))
-        await pg.keyboard.press('Alt+Shift+ArrowRight'); await pg.wait_for_timeout(80)
-        check('Alt+Shift+→ indents both lines', await pg.evaluate(MERGED), '  - a\n  - b')
-        check('selection kept after indent', await pg.evaluate("getSelection().toString()"), '  - a\n  - b')
-        await pg.keyboard.press('Alt+Shift+ArrowLeft'); await pg.wait_for_timeout(80)
-        check('Alt+Shift+← outdents', await pg.evaluate(MERGED), '- a\n- b')
-        await pg.keyboard.press('Escape'); await pg.wait_for_timeout(80)
-        check('the lines come back apart', (await pg.evaluate(RAWS))[1:3], ['- a', '- b'])
+        await pg.click('#blocks .block:nth-child(2)'); await pg.keyboard.press('Shift+ArrowDown')
+        check('two lines selected', await pg.evaluate(SEL) == [1, 2], await pg.evaluate(SEL))
+        await pg.keyboard.press('Alt+Shift+ArrowRight')
+        check('Alt+Shift+→ indents', (await pg.evaluate(RAWS))[1:3] == ['  - a', '  - b'], await pg.evaluate(RAWS))
+        check('selection kept after indent', await pg.evaluate(SEL) == [1, 2], await pg.evaluate(SEL))
+        await pg.keyboard.press('Alt+Shift+ArrowLeft')
+        check('Alt+Shift+← outdents', (await pg.evaluate(RAWS))[1:3] == ['- a', '- b'], await pg.evaluate(RAWS))
 
         # --- locked note: Ctrl+A selects, but Backspace does not delete
         await idle(pg); await pg.click('#lockBtn'); await idle(pg)

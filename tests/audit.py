@@ -7,8 +7,9 @@ errors = []
 def check(name, cond, detail=''):
     print(('OK  ' if cond else 'NG  ') + name + ('' if cond else '  -> ' + str(detail)))
     if not cond: errors.append(name)
+from helpers import set_md
 async def setmd(pg, md):
-    await pg.evaluate("md=>{document.getElementById('toggleSrc').click();const t=document.getElementById('source');t.value=md;t.dispatchEvent(new Event('input'));document.getElementById('toggleSrc').click();}", md)
+    await set_md(pg, md)
 async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch(); ctx = await b.new_context(permissions=['clipboard-read','clipboard-write']); pg = await ctx.new_page()
@@ -80,10 +81,13 @@ async def main():
         await pg.click('#newNote'); await pg.keyboard.type('editing here')
         await pg.set_input_files('#fileInput', ['/tmp/a.md']); await pg.wait_for_timeout(300)
         check('import while editing', await pg.evaluate("document.getElementById('title').textContent") == '買い物')
-        # --- 12. source view keeps shortcuts native; toggling back re-renders
-        await pg.click('#toggleSrc'); await pg.keyboard.press('Control+f'); await pg.wait_for_timeout(30)
-        check('find bar not opened in source mode', await pg.evaluate("document.getElementById('findbar').hidden"))
-        await pg.click('#toggleSrc')
+        # --- 12. raw view: every line shows its Markdown, and find still works there
+        await pg.click('#toggleSrc'); await pg.wait_for_timeout(60)
+        check('raw view shows the markdown of every line', await pg.evaluate("[...document.querySelectorAll('#blocks .block')].every(el => el.textContent === el._raw)"))
+        await pg.keyboard.press('Control+f'); await pg.wait_for_timeout(40)
+        check('find works in the raw view', not await pg.evaluate("document.getElementById('findbar').hidden"))
+        await pg.keyboard.press('Escape'); await pg.click('#toggleSrc'); await pg.wait_for_timeout(60)
+        check('back to the formatted view', await pg.evaluate("!!document.querySelector('#blocks .b-li, #blocks .b-h1, #blocks .b-p')"))
         # --- 13. undo/redo button states
         st = await pg.evaluate("[document.getElementById('undo').disabled, document.getElementById('redo').disabled]")
         check('history buttons sane', st[1] == True, st)

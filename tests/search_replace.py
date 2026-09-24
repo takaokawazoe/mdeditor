@@ -1,14 +1,15 @@
 import asyncio
 from playwright.async_api import async_playwright
+from helpers import set_md
 async def main():
     async with async_playwright() as p:
-        b = await p.chromium.launch(); pg = await b.new_page()
+        b = await p.chromium.launch(); ctx = await b.new_context(permissions=['clipboard-read','clipboard-write']); pg = await ctx.new_page()
         pg.on("pageerror", lambda e: print("pageerror:", e))
         await pg.goto("file://" + __import__("os").path.abspath(__import__("os").path.join(__import__("os").path.dirname(__file__), "..", "index.html")) + ""); await pg.wait_for_timeout(300)
         await pg.click('[data-choice=browser]')
         # make a few notes
         for md in ['# 猫の日記\n\n今日は猫が3匹来た。cat cat', '# 犬の日記\n\n犬は来ない', '# 買い物\n\n- 猫缶\n- 犬用おやつ', '# メモ4\n\n猫', '# メモ5\n\nCAT']:
-            await pg.click('#newNote'); await pg.evaluate("md=>{document.getElementById('toggleSrc').click();const t=document.getElementById('source');t.value=md;t.dispatchEvent(new Event('input'));document.getElementById('toggleSrc').click();}", md)
+            await pg.click('#newNote'); await set_md(pg, md)
         await pg.wait_for_timeout(100)
         # global search
         await pg.fill('#gq', '猫'); await pg.wait_for_timeout(100)

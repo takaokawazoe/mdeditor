@@ -26,14 +26,12 @@ async def main():
         # --- replace two selected lines with two pasted ones
         await note(['一', '二', '三'])
         await setclip('貼りA\n貼りB')
-        await pg.click('#blocks .block:nth-child(1)'); await pg.keyboard.press('Home')
-        await pg.keyboard.press('Shift+ArrowDown'); await pg.keyboard.press('Shift+End'); await pg.wait_for_timeout(80)
-        check('the selection covers both lines', await pg.evaluate("getSelection().toString()"), '一\n二')
-        await pg.keyboard.press('Control+v'); await pg.wait_for_timeout(200)
-        check('the selected text is replaced', await pg.evaluate("document.querySelector('#blocks .merged')?._raw"), '貼りA\n貼りB')
-        check('nothing stays selected', await pg.evaluate("getSelection().toString()"), '')
-        await pg.keyboard.press('Escape'); await pg.wait_for_timeout(100)
-        check('the lines come back apart', await pg.evaluate(RAWS), ['貼りA', '貼りB', '三'])
+        await pg.click('#blocks .block:nth-child(1)'); await pg.keyboard.press('Shift+ArrowDown'); await pg.wait_for_timeout(50)
+        check('two lines selected', await pg.evaluate(SEL), [0, 1])
+        await pg.keyboard.press('Control+v'); await pg.wait_for_timeout(150)
+        check('the selected lines are replaced', await pg.evaluate(RAWS), ['貼りA', '貼りB', '三'])
+        check('editing continues on the last pasted line', await pg.evaluate("document.querySelector('#blocks .editing')?._raw"), '貼りB')
+        check('the selection is gone', await pg.evaluate(SEL), [])
 
         # --- undo puts the old lines back in one step
         await pg.keyboard.press('Control+z'); await pg.wait_for_timeout(150)

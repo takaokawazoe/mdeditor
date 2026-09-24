@@ -142,10 +142,10 @@ body.side-hidden .side{display:none}
 .top{position:relative}
 .editor{flex:1;overflow-y:auto;padding:36px 24px 45vh;cursor:text;font-size:var(--fs)}
 .page{max-width:44rem;margin:0 auto}
-.source{display:none;width:100%;min-height:50vh;resize:none;overflow:hidden;font-family:var(--font-mono);font-size:.92em;line-height:1.8;color:var(--ink);background:transparent;border:0;border-radius:0;padding:2px 0;margin:0;caret-color:var(--accent);white-space:pre-wrap;word-break:break-word}
-.source:focus{outline:none}
-body.src .source{display:block}
-body.src .blocks{display:none}
+body.raw .block{font-family:var(--font-mono);font-size:.92em;line-height:1.8;font-weight:400;white-space:pre-wrap;color:var(--ink);padding:0 0 0 16px;margin:0;border:0;background:none}
+body.raw .block::before,body.raw .block::after{content:none}
+body.raw .block.editing::before,body.raw .block.merged::before{content:"";position:absolute;left:0;top:.2em;bottom:.2em;width:2px;border-radius:1px;background:var(--accent)}
+body.raw .block:empty::after{content:"\feff"}
 
 /* ---- blocks ---- */
 .block{
@@ -331,7 +331,6 @@ body.dragging .drop{display:flex}
   <main class="editor" id="editor">
     <div class="page" id="page">
       <div class="blocks" id="blocks" tabindex="0"></div>
-      <textarea class="source" id="source" spellcheck="false" aria-label="Markdownソース"></textarea>
     </div>
   </main>
 </div>
@@ -389,7 +388,8 @@ body.dragging .drop{display:flex}
 (() => {
 const $ = s => document.querySelector(s);
 const blocksEl = $('#blocks'), editorEl = $('#editor'), pageEl = $('#page'), listEl = $('#list');
-const titleEl = $('#title'), sourceEl = $('#source'), toastEl = $('#toast');
+const titleEl = $('#title'), toastEl = $('#toast');
+const rawView = () => document.body.classList.contains('raw'); // every line shown as plain Markdown
 const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const PLACEHOLDER = 'ここに書き始めましょう';
 const KEY = 'wysimd.v1';
@@ -588,10 +588,12 @@ function applyClasses(el, info, editing) {
   else if (info.type === 'ol') el.dataset.mark = info.num + '.';
   else delete el.dataset.mark;
 }
+function rawClasses(el, editing) { el.className = 'block' + (editing ? ' editing' : ''); el.style.removeProperty('--indent'); delete el.dataset.mark; }
 function renderEl(el, raw) {
   let info = blockInfo(raw);
   if (info.type === 'table') { raw = formatTable(info); info = blockInfo(raw); }
   el._raw = raw;
+  if (rawView()) { rawClasses(el, false); el.textContent = raw; el.contentEditable = 'false'; return; }
   applyClasses(el, info, false);
   el.innerHTML = blockHTML(info);
   el.contentEditable = 'false';
@@ -616,7 +618,7 @@ function enterEdit(el, off) {
   el.contentEditable = 'plaintext-only';
   if (el.contentEditable !== 'plaintext-only') el.contentEditable = 'true';
   el.textContent = el._raw; ensureTrailingBr(el);
-  applyClasses(el, blockInfo(el._raw), true);
+  rawView() ? rawClasses(el, true) : applyClasses(el, blockInfo(el._raw), true);
   el.focus({ preventScroll: true });
   setCaret(el, off == null ? el._raw.length : Math.min(off, el._raw.length));
   el.scrollIntoView({ block: 'nearest' });
@@ -668,8 +670,7 @@ function restore(snap) {
   for (const raw of n.blocks) blocksEl.append(makeBlockEl(raw));
   if (!blocksEl.children.length) blocksEl.append(makeBlockEl(''));
   renumber();
-  sourceEl.value = n.blocks.join('\n');
-  if (snap.bi != null && blocksEl.children[snap.bi] && !document.body.classList.contains('src')) enterEdit(blocksEl.children[snap.bi], snap.off);
+  if (snap.bi != null && blocksEl.children[snap.bi]) enterEdit(blocksEl.children[snap.bi], snap.off);
   updateTitle(); renderList(); scheduleSave(); updateHistoryButtons();
   if (find.open) findRefresh(false);
 }
@@ -728,17 +729,15 @@ document.addEventListener('keydown', e => {
   const cmd = matchCmd(e, 'any');
   if (!cmd) return;
   if (cmd === 'findAll') { e.preventDefault(); if (document.body.classList.contains('side-hidden')) toggleSide(); sideEl.classList.add('open'); backdrop.classList.add('show'); gq.focus(); gq.select(); return; }
-  if (e.target === sourceEl) return; // textarea keeps its native undo and find
   // "select every line" with no line open (while editing, the blocks handler takes it)
-  if (cmd === 'selectAll' && !editingEl && !bsel && !document.body.classList.contains('src') && (e.target === document.body || $('#editor').contains(e.target)) && !document.querySelector('.modal:not([hidden])')) { e.preventDefault(); bselStart(0, nBlocks() - 1); return; }
-  if (cmd === 'find' || cmd === 'replace') { if (document.body.classList.contains('src')) return; e.preventDefault(); openFind(cmd === 'replace'); return; }
+  if (cmd === 'selectAll' && !editingEl && !bsel && (e.target === document.body || $('#editor').contains(e.target)) && !document.querySelector('.modal:not([hidden])')) { e.preventDefault(); bselStart(0, nBlocks() - 1); return; }
+  if (cmd === 'find' || cmd === 'replace') { e.preventDefault(); openFind(cmd === 'replace'); return; }
   if (cmd === 'undo') { e.preventDefault(); undo(); }
   else if (cmd === 'redo') { e.preventDefault(); redo(); }
 });
 // nothing is open (after Esc): Enter or an arrow key goes back to the line we left
 document.addEventListener('keydown', e => {
-  if (editingEl || bsel || e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
-  if (document.body.classList.contains('src')) return;
+  if (editingEl || bsel || msel || e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
   if (document.querySelector('.modal:not([hidden])')) return;
   const t = e.target;
   if (t !== document.body && t !== blocksEl && t !== editorEl && t !== pageEl) return; // inputs and buttons keep their own keys
@@ -794,7 +793,6 @@ function renderNote() {
   for (const raw of n.blocks) blocksEl.append(makeBlockEl(raw));
   if (!blocksEl.children.length) blocksEl.append(makeBlockEl(''));
   renumber();
-  sourceEl.value = n.blocks.join('\n');
   updateTitle(); renderLock();
   if (hist().idx < 0) record('init');
   updateHistoryButtons();
@@ -1201,7 +1199,9 @@ blocksEl.addEventListener('mousedown', e => {
     if (bsel) { e.preventDefault(); bsel.head = blockIdx(el); bselRender(); return; }
     if (editingEl && editingEl !== el) {
       e.preventDefault();
-      const i = blockIdx(editingEl), j = blockIdx(el), [s0] = selOffsets(editingEl);
+      const i = blockIdx(editingEl), j = blockIdx(el);
+      if (!rawView()) { bselStart(i, j); return; }
+      const [s0] = selOffsets(editingEl);
       mergeLines(Math.min(i, j), Math.max(i, j), { idx: i, off: s0 }, { idx: j, off: offsetInBlock(el, e.clientX, e.clientY) });
       return;
     }
@@ -1229,7 +1229,7 @@ blocksEl.addEventListener('click', e => {
 });
 editorEl.addEventListener('mousedown', e => {
   if (e.target !== editorEl && e.target !== pageEl && e.target !== blocksEl) return;
-  if (document.body.classList.contains('src') || isLocked()) return;
+  if (isLocked()) return;
   e.preventDefault();
   const last = blocksEl.lastElementChild; if (last) enterEdit(last);
 });
@@ -1379,6 +1379,7 @@ blocksEl.addEventListener('keydown', e => {
     const down = e.key === 'ArrowDown', j = down ? idx + 1 : idx - 1;
     if ((down ? pos.last : pos.first) && j >= 0 && j < nBlocks()) {
       e.preventDefault();
+      if (!rawView()) { bselStart(idx, j); return; } // formatted view keeps whole-line selection
       const [s0, t0] = selOffsets(el), other = blocksEl.children[j]._raw.length;
       mergeLines(Math.min(idx, j), Math.max(idx, j), { idx, off: down ? s0 : t0 }, { idx: j, off: Math.min(focusOffset(el), other) });
     }
@@ -1465,6 +1466,11 @@ blocksEl.addEventListener('mousemove', e => {
   }
   const i = blockIdx(el);
   if (i === mouseDownIdx) return;
+  if (!rawView()) { // formatted view: dragging across lines picks whole lines, as before
+    if (!bsel) { bselStart(mouseDownIdx, i); document.body.classList.add('bselecting'); }
+    else if (bsel.head !== i) { bsel.head = i; bselRender(); }
+    return;
+  }
   const src = blocksEl.children[mouseDownIdx];
   const anchor = { idx: mouseDownIdx, off: mouseDownOff == null ? src._raw.length : mouseDownOff };
   const m = mergeLines(Math.min(i, mouseDownIdx), Math.max(i, mouseDownIdx), anchor, { idx: i, off: offsetInBlock(el, e.clientX, e.clientY) });
@@ -1473,7 +1479,7 @@ blocksEl.addEventListener('mousemove', e => {
 document.addEventListener('mouseup', () => { mouseDownIdx = null; document.body.classList.remove('bselecting'); });
 document.addEventListener('keydown', e => {
   if (!bsel) return;
-  const t = e.target; if (t === gq || t === fq || t === fr || t === sourceEl || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA') return;
+  const t = e.target; if (t === gq || t === fq || t === fr || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA') return;
   const k = e.key;
   if (e.metaKey || e.ctrlKey) {
     const kk = k.toLowerCase(), cmd = matchCmd(e, 'lines');
@@ -1659,23 +1665,13 @@ function renderSearchList() {
 
 /* ---------- source view ---------- */
 $('#toggleSrc').addEventListener('click', () => {
-  const on = !document.body.classList.contains('src');
-  if (on) {
-    if (editingEl) leaveEdit(editingEl);
-    if (find.open) { find.open = false; fbar.hidden = true; find.matches = []; find.idx = -1; unpeek(); for (const b of blocksEl.children) b.classList.remove('hit'); }
-    sourceEl.value = cur().blocks.join('\n');
-    document.body.classList.add('src'); $('#toggleSrc').classList.add('on'); $('#toggleSrc').textContent = '整形表示に戻す';
-    fitSource(); sourceEl.focus();
-  } else {
-    document.body.classList.remove('src'); $('#toggleSrc').classList.remove('on'); $('#toggleSrc').textContent = 'Markdownを表示';
-    renderNote();
-  }
-});
-function fitSource() { sourceEl.style.height = 'auto'; sourceEl.style.height = sourceEl.scrollHeight + 'px'; }
-sourceEl.addEventListener('input', () => {
-  fitSource();
-  const n = cur(); n.blocks = splitToBlocks(sourceEl.value); n.updated = Date.now();
-  updateTitle(); renderList(); scheduleSave(); record('type');
+  const on = !rawView();
+  if (msel) splitMerged();
+  if (editingEl) leaveEdit(editingEl);
+  document.body.classList.toggle('raw', on);
+  $('#toggleSrc').classList.toggle('on', on);
+  $('#toggleSrc').textContent = on ? '整形表示に戻す' : 'Markdownを表示';
+  renderNote();
 });
 
 /* ---------- title, list, notes ---------- */
@@ -1810,7 +1806,6 @@ function deleteNote(id) {
 $('#newNote').addEventListener('click', () => {
   if (editingEl) leaveEdit(editingEl);
   const n = newNote(''); notes.push(n); currentId = n.id; confirmId = null;
-  if (document.body.classList.contains('src')) $('#toggleSrc').click();
   renderNote(); renderList(); persist(); closeSide();
   enterEdit(blocksEl.firstElementChild, 0);
 });
@@ -1892,7 +1887,6 @@ function applySettings() {
   r.setProperty('--font-body', fontStack(BODY_FONTS, settings.body, settings.bodyCustom, false));
   r.setProperty('--font-mono', fontStack(MONO_FONTS, settings.mono, settings.monoCustom, true));
   r.setProperty('--fs', settings.size + 'px');
-  if (document.body.classList.contains('src')) fitSource();
 }
 const settingsEl = $('#settings');
 function fillSelect(sel, list, val) { sel.innerHTML = list.map(f => '<option value="' + f.id + '"' + (f.id === val ? ' selected' : '') + '>' + f.label + '</option>').join(''); }
@@ -2028,7 +2022,6 @@ function renderLock() {
   const l = isLocked();
   document.body.classList.toggle('locked', l);
   const b = $('#lockBtn'); b.textContent = l ? '🔒 ロック中' : '🔓'; b.classList.toggle('locked', l); b.title = l ? 'ロックを解除' : 'このメモをロック（編集・削除できなくなる）';
-  sourceEl.readOnly = l;
 }
 $('#lockBtn').addEventListener('click', () => {
   const n = cur(); if (!n) return;
@@ -2040,7 +2033,6 @@ $('#lockBtn').addEventListener('click', () => {
 $('#helpBtn').addEventListener('click', () => {
   let m = notes.find(x => x.manual);
   if (!m) { m = newNote(MANUAL); m.manual = true; m.locked = true; m.manualVer = MANUAL_VER; notes.push(m); toast('使い方のメモを追加しました'); }
-  if (document.body.classList.contains('src')) $('#toggleSrc').click();
   openNote(m.id); closeSide();
   blocksEl.scrollIntoView({ block: 'start' });
 });
@@ -2115,7 +2107,6 @@ async function importFiles(fileList) {
   const tail = (skipped ? '（テキスト以外の' + skipped + '件は除外）' : '') + (same ? '（同じ内容の' + same + '件は省略）' : '') + (badZip ? '（読めない.zipが' + badZip + '件）' : '');
   if (!added) { toast('追加するメモはありませんでした' + tail, 3000); return; }
   currentId = first.id; confirmId = null;
-  if (document.body.classList.contains('src')) $('#toggleSrc').click();
   renderNote(); renderList(); persist(); closeSide();
   toast(added === 1 && !tail ? '「' + noteTitle(first) + '」を追加しました' : added + '件のメモを追加しました' + tail, tail ? 3000 : 1800);
 }
@@ -2496,7 +2487,7 @@ document.addEventListener('keydown', e => {
 });
 backdrop.addEventListener('click', closeSide);
 window.addEventListener('beforeunload', persist);
-window.addEventListener('resize', () => { if (document.body.classList.contains('src')) fitSource(); renderSideBtn(); });
+window.addEventListener('resize', renderSideBtn);
 
 load(); renderNote(); renderList(); fsInit();
 })();
