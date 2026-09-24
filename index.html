@@ -617,8 +617,9 @@ let resume = null;
 function markResume(el, off) {
   const i = blockIdx(el); if (i < 0) return;
   // Esc records the caret first, then the focusout that follows must not overwrite it
+  const x = document.activeElement === el ? caretX() : null;
   if (off == null) off = resume && resume.idx === i ? resume.off : readRaw(el).length;
-  resume = { idx: i, off };
+  resume = { idx: i, off, x: x != null ? x : (resume && resume.idx === i ? resume.x : null) };
 }
 function leaveEdit(el) {
   const before = el._raw, raw = readRaw(el);
@@ -739,6 +740,10 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'ArrowDown') idx = Math.min(n - 1, idx + 1);
   else if (e.key === 'ArrowLeft') { if (off > 0) off--; else if (idx > 0) { idx--; off = len(idx); } }
   else if (e.key === 'ArrowRight') { if (off < len(idx)) off++; else if (idx < n - 1) { idx++; off = 0; } }
+  if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && resume && resume.x != null) {
+    enterEditAtX(blocksEl.children[idx], resume.x, e.key === 'ArrowUp');
+    return;
+  }
   enterEdit(blocksEl.children[idx], off);
 });
 blocksEl.addEventListener('beforeinput', e => {
@@ -797,6 +802,35 @@ function setCaret(el, off) {
     acc += n.length;
   }
   r.selectNodeContents(el); r.collapse(false); sel.removeAllRanges(); sel.addRange(r);
+}
+// moving between lines keeps the column the caret looks like it is in, not the character count
+function caretX() {
+  const sel = getSelection(); if (!sel.rangeCount) return null;
+  const r = sel.getRangeAt(0).cloneRange();
+  const rect = r.getClientRects()[0] || r.getBoundingClientRect();
+  return rect && (rect.left || rect.top) ? rect.left : null;
+}
+function caretFromPoint(x, y) {
+  if (document.caretRangeFromPoint) return document.caretRangeFromPoint(x, y);
+  if (document.caretPositionFromPoint) { const p = document.caretPositionFromPoint(x, y); return p && { startContainer: p.offsetNode, startOffset: p.offset }; }
+  return null;
+}
+// where x falls on this element's first (or last) visual line
+function offsetAtX(el, x, atBottom) {
+  if (x == null) return null;
+  const box = el.getBoundingClientRect();
+  const lh = parseFloat(getComputedStyle(el).lineHeight) || box.height || 20;
+  const y = atBottom ? box.bottom - Math.min(lh, box.height) / 2 : box.top + Math.min(lh, box.height) / 2;
+  const pos = caretFromPoint(Math.max(box.left + 1, Math.min(x, box.right - 1)), y);
+  if (!pos || !el.contains(pos.startContainer)) return null;
+  const pre = document.createRange(); pre.selectNodeContents(el); pre.setEnd(pos.startContainer, pos.startOffset);
+  return pre.toString().length;
+}
+function enterEditAtX(el, x, atBottom) {
+  enterEdit(el, atBottom ? undefined : 0);
+  if (editingEl !== el) return;
+  const off = offsetAtX(el, x, atBottom);
+  if (off != null) setCaret(el, off);
 }
 function setSelectionRange(el, start, end) {
   const sel = getSelection(), r = document.createRange();
@@ -1155,8 +1189,9 @@ blocksEl.addEventListener('keydown', e => {
   }
   if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !e.shiftKey && collapsed) {
     const pos = caretLines(el, off, raw);
-    if (e.key === 'ArrowUp' && pos.first && el.previousElementSibling) { e.preventDefault(); enterEdit(el.previousElementSibling); }
-    if (e.key === 'ArrowDown' && pos.last && el.nextElementSibling) { e.preventDefault(); enterEdit(el.nextElementSibling, 0); }
+    const x = caretX();
+    if (e.key === 'ArrowUp' && pos.first && el.previousElementSibling) { e.preventDefault(); enterEditAtX(el.previousElementSibling, x, true); }
+    if (e.key === 'ArrowDown' && pos.last && el.nextElementSibling) { e.preventDefault(); enterEditAtX(el.nextElementSibling, x, false); }
   }
 });
 
