@@ -99,6 +99,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 .block.hit:not(.editing){background:color-mix(in srgb,var(--accent-soft) 70%,transparent);border-radius:4px}
 .block.peek{background:transparent}
 .block.bsel{background:var(--accent-soft);border-radius:4px}
+.block.merged{white-space:pre-wrap;word-break:break-word}
+.block.merged::before{content:"";position:absolute;left:0;top:.4em;bottom:.4em;width:2px;border-radius:1px;background:var(--accent)}
 #blocks:focus{outline:none}
 #blocks:focus-visible{outline:2px solid var(--accent);outline-offset:6px;border-radius:6px}
 body.bselecting,body.bselecting *{user-select:none;-webkit-user-select:none}
@@ -659,7 +661,7 @@ function record(kind) {
   updateHistoryButtons();
 }
 function restore(snap) {
-  editingEl = null; find.peekEl = null; bsel = null;
+  editingEl = null; find.peekEl = null; bsel = null; msel = null;
   const n = cur();
   n.blocks = snap.blocks.slice(); n.updated = Date.now();
   blocksEl.innerHTML = '';
@@ -787,7 +789,7 @@ function syncBlocks(kind = 'edit') {
 }
 function renderNote() {
   const n = cur();
-  editingEl = null; find.peekEl = null; bsel = null;
+  editingEl = null; find.peekEl = null; bsel = null; msel = null;
   blocksEl.innerHTML = '';
   for (const raw of n.blocks) blocksEl.append(makeBlockEl(raw));
   if (!blocksEl.children.length) blocksEl.append(makeBlockEl(''));
@@ -1018,13 +1020,191 @@ function toggleTask(el) {
   renderEl(el, el._raw); syncBlocks();
 }
 
+function offsetInBlock(el, x, y) { // where a point falls inside a block, in raw-text coordinates
+  const r = pointRange(x, y);
+  if (!r || !el.contains(r.startContainer)) return el._raw.length;
+  const pre = document.createRange(); pre.selectNodeContents(el); pre.setEnd(r.startContainer, r.startOffset);
+  const vis = pre.toString().length;
+  return el === editingEl || el.classList.contains('merged') ? vis : mapOffset(el._raw, blockInfo(el._raw), vis);
+}
+/* ---------- selection across lines ---------- */
+// A selection that leaves its line merges the lines it covers into ONE editable element
+// (several lines in one block, like a table or a code fence). The browser's own
+// character-level selection then works across them; leaving splits them back.
+let msel = null; // { el, a, b } — blocks a..b are currently merged into el
+const lineStarts = raws => { const out = []; let o = 0; for (const r of raws) { out.push(o); o += r.length + 1; } return out; };
+function mergeLines(a, b, anchor, focus) { // anchor/focus: { idx, off } in block coordinates
+  if (isLocked()) { lockedToast(); return null; }
+  const els = [...blocksEl.children].slice(a, b + 1);
+  const raws = els.map(el => (el === editingEl ? readRaw(el) : el._raw));
+  if (editingEl && els.includes(editingEl)) editingEl = null; // no per-line editing while merged
+  if (find.peekEl && els.includes(find.peekEl)) find.peekEl = null;
+  const starts = lineStarts(raws), text = raws.join('\n');
+  const el = document.createElement('div');
+  el.className = 'block merged'; el.spellcheck = false; el._raw = text; el.textContent = text;
+  els[0].before(el);
+  for (const x of els) x.remove();
+  el.contentEditable = 'plaintext-only';
+  if (el.contentEditable !== 'plaintext-only') el.contentEditable = 'true';
+  ensureTrailingBr(el);
+  msel = { el, a, b };
+  if (bsel) { bsel = null; bselRender(); }
+  el.focus({ preventScroll: true });
+  const at = p => starts[p.idx - a] + Math.min(p.off, raws[p.idx - a].length);
+  setSelectionRange(el, Math.min(at(anchor), at(focus)), Math.max(at(anchor), at(focus)));
+  return el;
+}
+// offset in the merged text -> which line, and where in it
+function mergedPos(off) {
+  const raws = readRaw(msel.el).split('\n'), starts = lineStarts(raws);
+  for (let i = raws.length - 1; i >= 0; i--) if (off >= starts[i]) return { i, off: off - starts[i], raws };
+  return { i: 0, off: 0, raws };
+}
+function splitMerged(focusOff) {
+  if (!msel) return null;
+  const el = msel.el, text = readRaw(el), parts = splitToBlocks(text);
+  const nodes = parts.map(makeBlockEl);
+  el.replaceWith(...nodes);
+  msel = null;
+  const now = [...blocksEl.children].map(c => c._raw), was = cur().blocks;
+  const same = now.length === was.length && now.every((r, i) => r === was[i]);
+  syncBlocks(same ? null : 'edit'); // splitting back is not itself a change worth an undo step
+  if (focusOff == null) return nodes;
+  let o = 0;
+  for (let i = 0; i < parts.length; i++) {
+    if (focusOff <= o + parts[i].length) { enterEdit(nodes[i], focusOff - o); return nodes; }
+    o += parts[i].length + 1;
+  }
+  enterEdit(nodes[nodes.length - 1]);
+  return nodes;
+}
+// line-based commands keep working while merged: they act on every line the selection touches
+function mergedLines() {
+  const el = msel.el, text = readRaw(el), lines = text.split('\n'), starts = lineStarts(lines);
+  const [s, t] = selOffsets(el);
+  let a = lines.length - 1, b = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const from = starts[i], to = from + lines[i].length;
+    if (s <= to && t >= from) { a = Math.min(a, i); b = Math.max(b, i); }
+  }
+  return { el, lines, starts, s, t, a, b };
+}
+function mergedWrite(lines, s, t) {
+  const el = msel.el, text = lines.join('\n');
+  el.textContent = text; el._raw = text; ensureTrailingBr(el);
+  setSelectionRange(el, Math.max(0, Math.min(s, text.length)), Math.max(0, Math.min(t, text.length)));
+  syncMerged();
+}
+function mergedIndent(dir) {
+  const m = mergedLines(), lines = m.lines.slice();
+  let ds = 0, dt = 0;
+  for (let i = m.a; i <= m.b; i++) {
+    const raw = lines[i]; if (raw === '') continue;
+    const next = dir > 0 ? '  ' + raw : raw.replace(/^ {1,2}/, '');
+    const d = next.length - raw.length;
+    if (m.starts[i] < m.s) ds += d;
+    dt += d;
+    lines[i] = next;
+  }
+  mergedWrite(lines, m.s + ds, m.t + dt);
+}
+function mergedQuote() {
+  const m = mergedLines(), lines = m.lines.slice(), q = /^\s*>\s?/;
+  const add = lines.slice(m.a, m.b + 1).some(l => !q.test(l));
+  let ds = 0, dt = 0;
+  for (let i = m.a; i <= m.b; i++) {
+    const raw = lines[i], next = add ? '> ' + raw : raw.replace(q, '');
+    const d = next.length - raw.length;
+    if (m.starts[i] < m.s) ds += d;
+    dt += d;
+    lines[i] = next;
+  }
+  mergedWrite(lines, m.s + ds, m.t + dt);
+}
+function mergedMove(dir) {
+  const m = mergedLines();
+  const at = dir < 0 ? m.a - 1 : m.b + 1;
+  if (at < 0 || at >= m.lines.length) { // past the merged range: take in the neighbouring line first
+    if (!growMerge(dir)) return;
+    return mergedMove(dir);
+  }
+  const lines = m.lines.slice(), moved = lines.splice(at, 1)[0];
+  lines.splice(dir < 0 ? m.b : m.a, 0, moved);
+  const d = dir < 0 ? -(moved.length + 1) : moved.length + 1;
+  mergedWrite(lines, m.s + d, m.t + d);
+}
+function syncMerged() {
+  const el = msel.el, text = readRaw(el);
+  el._raw = text;
+  const out = []; // the merged element stands for several lines; the rest of the note is untouched
+  for (const c of blocksEl.children) c === el ? out.push(...splitToBlocks(text)) : out.push(c._raw);
+  const n = cur(); n.blocks = out; n.updated = Date.now();
+  updateTitle(); renderList(); scheduleSave(); record('type');
+}
+// grow the merged range when the selection reaches its top or bottom edge
+// take the neighbouring line into the merged element, leaving the selection where it is
+function growMerge(dir) {
+  if (!msel) return false;
+  const el = msel.el, grow = dir < 0 ? el.previousElementSibling : el.nextElementSibling;
+  if (!grow || !grow.classList.contains('block')) return false;
+  const [s, t] = selOffsets(el), text = readRaw(el), add = grow._raw;
+  const shift = dir < 0 ? add.length + 1 : 0;
+  const newText = dir < 0 ? add + '\n' + text : text + '\n' + add;
+  el.textContent = newText; el._raw = newText; ensureTrailingBr(el);
+  grow.remove();
+  if (dir < 0) msel.a--; else msel.b++;
+  setSelectionRange(el, s + shift, t + shift);
+  return true;
+}
+// same, and the selection grows onto the line just taken in (Shift+↑↓ at the edge)
+function extendMerge(dir) {
+  if (!growMerge(dir)) return false;
+  const el = msel.el, [s, t] = selOffsets(el);
+  setSelectionRange(el, dir < 0 ? 0 : s, dir < 0 ? t : readRaw(el).length);
+  return true;
+}
+// the merged element behaves like a small plain-text area: typing, Enter and paste all
+// work natively, and the note's lines are rebuilt from its text on every change
+blocksEl.addEventListener('input', e => {
+  if (!msel || e.target !== msel.el) return;
+  ensureTrailingBr(msel.el);
+  syncMerged();
+});
+blocksEl.addEventListener('keydown', e => {
+  if (!msel || !msel.el.contains(e.target) || e.isComposing) return;
+  const el = msel.el, [s0, t0] = selOffsets(el), len = readRaw(el).length;
+  if (e.key === 'Escape') { e.preventDefault(); const nodes = splitMerged(s0); if (editingEl) { markResume(editingEl, caretOffset(editingEl)); editingEl.blur(); } return; }
+  if (e.key === 'Tab') { e.preventDefault(); mergedIndent(e.shiftKey ? -1 : 1); return; }
+  if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && e.shiftKey && e.altKey) { e.preventDefault(); mergedMove(e.key === 'ArrowUp' ? -1 : 1); return; }
+  if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && e.shiftKey && e.altKey) { e.preventDefault(); mergedIndent(e.key === 'ArrowRight' ? 1 : -1); return; }
+  if (matchCmd(e, 'lines') === 'quote') { e.preventDefault(); mergedQuote(); return; }
+  if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && e.shiftKey && !e.altKey) { // grow past the merged range
+    if (e.key === 'ArrowUp' && s0 === 0 && msel.a > 0) { e.preventDefault(); extendMerge(-1); }
+    if (e.key === 'ArrowDown' && t0 === len && msel.el.nextElementSibling) { e.preventDefault(); extendMerge(1); }
+    return;
+  }
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a') { e.preventDefault(); setSelectionRange(el, 0, len); return; }
+}, true);
+blocksEl.addEventListener('focusout', e => {
+  if (!msel || e.target !== msel.el) return;
+  setTimeout(() => {
+    if (!msel || document.activeElement === msel.el) return;
+    if (!document.hasFocus()) return; // window went to the background: keep the selection
+    splitMerged();
+  }, 0);
+});
 /* ---------- events: editor ---------- */
 blocksEl.addEventListener('mousedown', e => {
   const el = e.target.closest('.block'); if (!el || !blocksEl.contains(el)) return;
   if (isLocked()) { if (e.target.closest('.cb')) e.preventDefault(); if (e.detail === 1) lockedToast(); return; }
   if (e.shiftKey) {
     if (bsel) { e.preventDefault(); bsel.head = blockIdx(el); bselRender(); return; }
-    if (editingEl && editingEl !== el) { e.preventDefault(); bselStart(blockIdx(editingEl), blockIdx(el)); return; }
+    if (editingEl && editingEl !== el) {
+      e.preventDefault();
+      const i = blockIdx(editingEl), j = blockIdx(el), [s0] = selOffsets(editingEl);
+      mergeLines(Math.min(i, j), Math.max(i, j), { idx: i, off: s0 }, { idx: j, off: offsetInBlock(el, e.clientX, e.clientY) });
+      return;
+    }
   }
   if (e.target.closest('.cb')) { e.preventDefault(); toggleTask(el); return; }
   if (e.target.closest('a') && (e.metaKey || e.ctrlKey)) return;
@@ -1068,6 +1248,7 @@ blocksEl.addEventListener('input', () => {
   el._raw = readRaw(el); applyClasses(el, blockInfo(el._raw), true); syncBlocks('type');
 });
 blocksEl.addEventListener('paste', e => {
+  if (msel && msel.el.contains(e.target)) { breakMerge = true; return; } // native paste, its own undo step
   const el = editingEl; if (!el) return;
   e.preventDefault();
   const text = (e.clipboardData.getData('text/plain') || '').replace(/\r\n?/g, '\n'); if (!text) return;
@@ -1195,8 +1376,12 @@ blocksEl.addEventListener('keydown', e => {
   if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && e.shiftKey && e.altKey) { e.preventDefault(); moveBlocks(e.key === 'ArrowDown' ? 1 : -1); return; }
   if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && e.shiftKey && !e.altKey) {
     const idx = [...blocksEl.children].indexOf(el), pos = caretLines(el, focusOffset(el), raw, true);
-    if (e.key === 'ArrowDown' && pos.last) { e.preventDefault(); bselStart(idx, idx + 1); }
-    if (e.key === 'ArrowUp' && pos.first) { e.preventDefault(); bselStart(idx, idx - 1); }
+    const down = e.key === 'ArrowDown', j = down ? idx + 1 : idx - 1;
+    if ((down ? pos.last : pos.first) && j >= 0 && j < nBlocks()) {
+      e.preventDefault();
+      const [s0, t0] = selOffsets(el), other = blocksEl.children[j]._raw.length;
+      mergeLines(Math.min(idx, j), Math.max(idx, j), { idx, off: down ? s0 : t0 }, { idx: j, off: Math.min(focusOffset(el), other) });
+    }
     return;
   }
   if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !e.shiftKey && collapsed) {
@@ -1268,13 +1453,22 @@ function indentBlocks(dir) {
   });
   bselRender(); syncBlocks('edit');
 }
-let mouseDownIdx = null;
+let mouseDownIdx = null, mouseDownOff = null, dragAnchorOff = 0;
 blocksEl.addEventListener('mousemove', e => {
   if (e.buttons !== 1 || mouseDownIdx == null || isLocked()) return;
   const el = e.target.closest('.block'); if (!el || !blocksEl.contains(el)) return;
+  if (msel) { // merged already: the drag began on another element, so we follow the pointer ourselves
+    if (el !== msel.el) growMerge(blockIdx(el) < msel.a ? -1 : 1);
+    const off = offsetInBlock(msel.el, e.clientX, e.clientY);
+    setSelectionRange(msel.el, Math.min(dragAnchorOff, off), Math.max(dragAnchorOff, off));
+    return;
+  }
   const i = blockIdx(el);
-  if (!bsel) { if (i !== mouseDownIdx) { bselStart(mouseDownIdx, i); document.body.classList.add('bselecting'); } }
-  else if (bsel.head !== i) { bsel.head = i; bselRender(); }
+  if (i === mouseDownIdx) return;
+  const src = blocksEl.children[mouseDownIdx];
+  const anchor = { idx: mouseDownIdx, off: mouseDownOff == null ? src._raw.length : mouseDownOff };
+  const m = mergeLines(Math.min(i, mouseDownIdx), Math.max(i, mouseDownIdx), anchor, { idx: i, off: offsetInBlock(el, e.clientX, e.clientY) });
+  if (m) { const [s0, t0] = selOffsets(m); dragAnchorOff = i > mouseDownIdx ? s0 : t0; }
 });
 document.addEventListener('mouseup', () => { mouseDownIdx = null; document.body.classList.remove('bselecting'); });
 document.addEventListener('keydown', e => {
@@ -1308,7 +1502,10 @@ document.addEventListener('keydown', e => {
 }, true);
 blocksEl.addEventListener('mousedown', e => {
   const el = e.target.closest('.block'); mouseDownIdx = el && blocksEl.contains(el) && e.button === 0 ? blockIdx(el) : null;
+  mouseDownOff = el && mouseDownIdx != null ? offsetInBlock(el, e.clientX, e.clientY) : null;
+  dragAnchorOff = 0;
   if (!e.shiftKey) bselClear();
+  if (msel && el !== msel.el) splitMerged();
 }, true);
 
 /* ---------- search & replace ---------- */

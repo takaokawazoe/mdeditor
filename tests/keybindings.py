@@ -10,6 +10,7 @@ def check(label, got, want=True):
     if not ok: errors.append(label)
 EDITING = "document.querySelector('#blocks .editing')?._raw ?? null"
 RAWS = "[...document.querySelectorAll('#blocks .block')].map(e=>e._raw)"
+MERGED = "document.querySelector('#blocks .merged')?._raw ?? null"
 CARET = """(() => { const el = document.querySelector('#blocks .editing'); if (!el) return -1;
   const s = getSelection(); if (!s.rangeCount) return -1; const r = s.getRangeAt(0);
   const pre = document.createRange(); pre.selectNodeContents(el); pre.setEnd(r.startContainer, r.startOffset); return pre.toString().length; })()"""
@@ -59,11 +60,13 @@ async def main():
         await pg.keyboard.press('Control+Shift+Q'); await pg.wait_for_timeout(50)
         check('quote removed', await pg.evaluate(EDITING), 'あいうえお')
         await pg.keyboard.press('Enter'); await pg.keyboard.type('二行目'); await pg.wait_for_timeout(50)
-        await pg.keyboard.press('Shift+ArrowUp'); await pg.wait_for_timeout(50)
-        await pg.keyboard.press('Control+Shift+Q'); await pg.wait_for_timeout(80)
-        check('quote on selected lines', await pg.evaluate(RAWS), ['> あいうえお', '> 二行目'])
-        await pg.keyboard.press('Control+Shift+Q'); await pg.wait_for_timeout(80)
-        check('quote off again', await pg.evaluate(RAWS), ['あいうえお', '二行目'])
+        await pg.keyboard.press('Shift+ArrowUp'); await pg.wait_for_timeout(80)
+        await pg.keyboard.press('Control+Shift+Q'); await pg.wait_for_timeout(100)
+        check('quote on every line the selection touches', await pg.evaluate(MERGED), '> あいうえお\n> 二行目')
+        await pg.keyboard.press('Control+Shift+Q'); await pg.wait_for_timeout(100)
+        check('quote off again', await pg.evaluate(MERGED), 'あいうえお\n二行目')
+        await pg.keyboard.press('Escape'); await pg.wait_for_timeout(80)
+        check('and the lines come back apart', await pg.evaluate(RAWS), ['あいうえお', '二行目'])
 
         # --- link, with and without a selection
         await pg.click('#blocks .block:nth-child(2)'); await pg.keyboard.press('Home')

@@ -12,6 +12,7 @@ def check(label, cond, extra=''):
     print(('OK  ' if cond else 'NG  ') + label + ('' if cond else '  -> ' + str(extra)))
     if not cond: errors.append(label)
 RAWS = "[...document.querySelectorAll('#blocks .block')].map(e=>e._raw)"
+MERGED = "document.querySelector('#blocks .merged')?._raw ?? null"
 SEL = "[...document.querySelectorAll('#blocks .block')].map((e,i)=>e.classList.contains('bsel')?i:-1).filter(i=>i>=0)"
 async def setmd(pg, md):
     await pg.click('#newNote')
@@ -62,13 +63,15 @@ async def main():
         check('Ctrl+A with no line open selects all lines', await pg.evaluate(SEL) == [0, 1, 2, 3], await pg.evaluate(SEL))
 
         # --- Alt+Shift+→/← indent the selection
-        await pg.click('#blocks .block:nth-child(2)'); await pg.keyboard.press('Shift+ArrowDown')
-        check('two lines selected', await pg.evaluate(SEL) == [1, 2], await pg.evaluate(SEL))
-        await pg.keyboard.press('Alt+Shift+ArrowRight')
-        check('Alt+Shift+→ indents', (await pg.evaluate(RAWS))[1:3] == ['  - a', '  - b'], await pg.evaluate(RAWS))
-        check('selection kept after indent', await pg.evaluate(SEL) == [1, 2], await pg.evaluate(SEL))
-        await pg.keyboard.press('Alt+Shift+ArrowLeft')
-        check('Alt+Shift+← outdents', (await pg.evaluate(RAWS))[1:3] == ['- a', '- b'], await pg.evaluate(RAWS))
+        await pg.click('#blocks .block:nth-child(2)'); await pg.keyboard.press('Home'); await pg.keyboard.press('Shift+ArrowDown')
+        check('the selection reaches the next line', '\n' in await pg.evaluate("getSelection().toString()"), await pg.evaluate("getSelection().toString()"))
+        await pg.keyboard.press('Alt+Shift+ArrowRight'); await pg.wait_for_timeout(80)
+        check('Alt+Shift+→ indents both lines', await pg.evaluate(MERGED), '  - a\n  - b')
+        check('selection kept after indent', await pg.evaluate("getSelection().toString()"), '  - a\n  - b')
+        await pg.keyboard.press('Alt+Shift+ArrowLeft'); await pg.wait_for_timeout(80)
+        check('Alt+Shift+← outdents', await pg.evaluate(MERGED), '- a\n- b')
+        await pg.keyboard.press('Escape'); await pg.wait_for_timeout(80)
+        check('the lines come back apart', (await pg.evaluate(RAWS))[1:3], ['- a', '- b'])
 
         # --- locked note: Ctrl+A selects, but Backspace does not delete
         await idle(pg); await pg.click('#lockBtn'); await idle(pg)
