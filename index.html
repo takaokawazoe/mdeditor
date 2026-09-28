@@ -2135,6 +2135,11 @@ function emlText(part, found = { atts: [] }) {
   const bytes = enc === 'base64' ? b64Bytes(part.body) : enc === 'quoted-printable' ? qpBytes(part.body) : bytesOf(part.body);
   return { text: decodeCharset(bytes, paramOf(part.h['content-type'], 'charset')), html: ct.startsWith('text/html') };
 }
+// mail carries stream terminators and invisible padding (zero width, soft hyphens, combining joiners)
+const INVISIBLE = /[\0\u00ad\u034f\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060-\u2064\ufeff]/g;
+const cleanMailText = (t, fromHtml) => t.replace(INVISIBLE, '').replace(/\r\n?/g, '\n').replace(/\u00a0/g, ' ')
+  .split('\n').map(l => (fromHtml ? l.replace(/^\s+/, '') : l).replace(/\s+$/, ''))
+  .join('\n').replace(/\n{3,}/g, '\n\n').trim(); // html tables leave deep indents behind
 function htmlToText(html) {
   const doc = new DOMParser().parseFromString(html.replace(/<(br|\/p|\/div|\/tr|\/li|\/h[1-6])\b[^>]*>/gi, '\n$&'), 'text/html');
   for (const el of doc.querySelectorAll('script,style')) el.remove();
@@ -2143,11 +2148,10 @@ function htmlToText(html) {
 function emlToMarkdown(raw, fallbackTitle) {
   const part = emlPart(raw), found = { atts: [] }, got = emlText(part, found);
   const h = part.h;
-  const subject = decodeWords(h.subject || '').trim() || fallbackTitle;
+  const subject = cleanMailText(decodeWords(h.subject || '')) || fallbackTitle;
   const meta = [['差出人', h.from], ['宛先', h.to], ['日時', h.date]]
-    .filter(([, v]) => v).map(([k, v]) => k + '：' + decodeWords(v).trim());
-  let body = got ? (got.html ? htmlToText(got.text) : got.text) : '';
-  body = body.replace(/\r\n?/g, '\n').replace(/ /g, ' ').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+    .filter(([, v]) => v).map(([k, v]) => k + '：' + cleanMailText(decodeWords(v)));
+  const body = got ? cleanMailText(got.html ? htmlToText(got.text) : got.text, got.html) : '';
   const out = ['# ' + subject, '', ...meta];
   if (meta.length) out.push('');
   out.push(body || '（本文を取り出せませんでした）');
@@ -2224,7 +2228,7 @@ function msgToMarkdown(buf, fallbackTitle) {
     const d = fixed(t); if (!d) continue;
     for (let p = 0; p + 16 <= props.length; p += 16) if (d.getUint32(p, true) === t) { cp = CODEPAGES[d.getUint32(p + 8, true)] || cp; break; }
   }
-  const utf16 = b => { let out = ''; for (let i = 0; i + 1 < b.length; i += 2) out += String.fromCharCode(b[i] | (b[i + 1] << 8)); return out; };
+  const utf16 = b => { let out = ''; for (let i = 0; i + 1 < b.length; i += 2) out += String.fromCharCode(b[i] | (b[i + 1] << 8)); return out.replace(/\0+$/, ''); };
   const str = id => {
     const u = by.get('__substg1.0_' + id + '001F'); if (u) return utf16(u);
     const a = by.get('__substg1.0_' + id + '001E'); if (a) return decodeCharset(a, cp);
@@ -2240,19 +2244,19 @@ function msgToMarkdown(buf, fallbackTitle) {
     }
     return '';
   };
-  const subject = str('0037').trim() || fallbackTitle;
-  const from = [str('0C1A').trim(), str('0C1F').trim() || str('5D01').trim()].filter(Boolean);
-  const meta = [['差出人', from.length > 1 ? from[0] + ' <' + from[1] + '>' : from[0]], ['宛先', str('0E04').trim()], ['日時', when()]]
+  const subject = cleanMailText(str('0037')) || fallbackTitle;
+  const from = [cleanMailText(str('0C1A')), cleanMailText(str('0C1F')) || cleanMailText(str('5D01'))].filter(Boolean);
+  const meta = [['差出人', from.length > 1 ? from[0] + ' <' + from[1] + '>' : from[0]], ['宛先', cleanMailText(str('0E04'))], ['日時', when()]]
     .filter(([, v]) => v).map(([k, v]) => k + '：' + v);
-  let body = str('1000');
+  let body = str('1000'), fromHtml = false;
   if (!body.trim()) {
     const html = by.get('__substg1.0_10130102') || by.get('__substg1.0_1013001E');
-    if (html) body = htmlToText(decodeCharset(html, cp));
+    if (html) { body = htmlToText(decodeCharset(html, cp)); fromHtml = true; }
   }
   const rtfOnly = !body.trim() && by.has('__substg1.0_10090102');
-  body = body.replace(/\r\n?/g, '\n').replace(/ /g, ' ').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
-  const atts = streams.filter(s => /^__substg1\.0_3707001F$/.test(s.name)).map(s => utf16(s.bytes))
-    .concat(streams.filter(s => /^__substg1\.0_3704001F$/.test(s.name)).map(s => utf16(s.bytes)));
+  body = cleanMailText(body, fromHtml);
+  const atts = streams.filter(s => /^__substg1\.0_3707001F$/.test(s.name)).map(s => cleanMailText(utf16(s.bytes)))
+    .concat(streams.filter(s => /^__substg1\.0_3704001F$/.test(s.name)).map(s => cleanMailText(utf16(s.bytes)))).filter(Boolean);
   const out = ['# ' + subject, '', ...meta];
   if (meta.length) out.push('');
   out.push(body || (rtfOnly ? '（本文がRTF形式のため取り出せませんでした）' : '（本文を取り出せませんでした）'));
