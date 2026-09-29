@@ -55,6 +55,38 @@ async def main():
         check('the link now names the new title', '[[買い物リスト2026]]' in (await pg.evaluate(RAWS))[2], True)
         check('and still resolves', await pg.evaluate("!!document.querySelector('#blocks .nlink:not(.missing)')"))
 
+        # --- typing [[ offers the other notes' titles
+        AC = "[...document.querySelectorAll('#ac .it')].map(b=>b.textContent)"
+        RAW = "document.querySelector('#blocks .editing')?._raw ?? null"
+        await pg.click('#newNote'); await pg.wait_for_timeout(60)
+        await pg.keyboard.type('つづきは [['); await pg.wait_for_timeout(150)
+        check('the popup lists notes', '買い物リスト2026' in await pg.evaluate(AC), True)
+        check('it leaves out the note being written', '無題のメモ' in await pg.evaluate(AC), False)
+        await pg.keyboard.type('今日'); await pg.wait_for_timeout(150)
+        check('typing filters the list', await pg.evaluate(AC), ['今日の予定'])
+        await pg.keyboard.press('Enter'); await pg.wait_for_timeout(150)
+        check('Enter puts the link in', await pg.evaluate(RAW), 'つづきは [[今日の予定]]')
+        check('the popup closes', await pg.evaluate("document.getElementById('ac').hidden"), True)
+        await pg.keyboard.type(' を見る'); await pg.wait_for_timeout(100)
+        check('typing carries on after it', await pg.evaluate(RAW), 'つづきは [[今日の予定]] を見る')
+        await pg.keyboard.type(' [[買い'); await pg.wait_for_timeout(150)
+        check('the popup comes back', len(await pg.evaluate(AC)) > 0, True)
+        await pg.keyboard.press('Escape'); await pg.wait_for_timeout(100)
+        check('Esc closes it without inserting', await pg.evaluate("document.getElementById('ac').hidden"), True)
+        check('and the text is untouched', (await pg.evaluate(RAW)).endswith(' [[買い'), True)
+        await idle()
+
+        # --- backlinks
+        BACK = "[...document.querySelectorAll('#backlinks a')].map(a=>a.textContent)"
+        await pg.click('#list .item .t:text-is("今日の予定")'); await pg.wait_for_timeout(200)
+        check('the note lists what points at it', await pg.evaluate(BACK), ['つづきは [[今日の予定]] を見る [[買い'])
+        await pg.click('#backlinks a'); await pg.wait_for_timeout(200)
+        check('clicking one opens it', await pg.evaluate(TITLE), 'つづきは [[今日の予定]] を見る [[買い')
+        await pg.click('#list .item .t:text-is("メモ帳へようこそ")'); await pg.wait_for_timeout(200)
+        check('a note nobody points at shows nothing', await pg.evaluate("document.getElementById('backlinks').hidden"), True)
+        await pg.click('#list .item .t:text-is("買い物リスト2026")'); await pg.wait_for_timeout(200)
+        check('a linked note lists its referrer', await pg.evaluate(BACK), ['今日の予定'])
+
         # links inside code are left alone
         await note('`[[買い物リスト2026]]` はリンクにしない')
         await idle()
