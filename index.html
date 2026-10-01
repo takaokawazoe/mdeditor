@@ -38,10 +38,28 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
   width:248px; flex:none; display:flex; flex-direction:column;
   border-right:1px solid var(--rule); background:var(--bg);
 }
-.side-head{display:flex;align-items:center;justify-content:space-between;padding:16px 14px 8px 18px}
+.side-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px;padding:16px 14px 8px 18px}
 .side-head h1{margin:0;font-size:15px;font-weight:600;letter-spacing:.02em}
 .list{flex:1;overflow-y:auto;padding:4px 8px 16px}
-.item{position:relative;border-radius:8px;margin-bottom:2px}
+.side-new{display:flex;gap:4px;align-items:center;width:100%;justify-content:flex-end}
+.item,.folder{position:relative;border-radius:8px;margin-bottom:2px}
+.item{margin-left:calc(var(--d,0)*14px)}
+.folder{display:flex;align-items:center;gap:4px;padding:6px 6px 6px 8px;margin-left:calc(var(--d,0)*14px);font-size:13.5px;color:var(--ink);cursor:pointer}
+.folder:hover{background:color-mix(in srgb,var(--paper) 60%,transparent)}
+.folder .tw{flex:none;width:12px;font-size:10px;color:var(--ink-2)}
+.folder .fname{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.folder .fn{flex:none;font-size:11.5px;color:var(--ink-2)}
+.folder .fx,.folder .fed{flex:none;width:20px;height:20px;border-radius:5px;color:var(--ink-2);font-size:13px;line-height:20px;text-align:center;opacity:0}
+.folder:hover .fx,.folder:hover .fed,.folder .fx:focus-visible,.folder .fed:focus-visible{opacity:1}
+.folder .fx:hover{background:var(--paper);color:var(--danger)}
+.folder .fed:hover{background:var(--paper);color:var(--accent)}
+.folder .fedit{flex:1;min-width:0;font:inherit;font-size:13.5px;color:var(--ink);background:var(--paper);border:1px solid var(--accent);border-radius:5px;padding:2px 6px}
+.folder .fedit:focus{outline:none}
+.folder.confirm{display:block;padding:9px 10px;background:var(--paper);cursor:default}
+.folder.confirm .t{display:block;font-size:13px;color:var(--ink-2);line-height:1.5}
+.folder.confirm .acts{display:flex;gap:6px;margin-top:8px}
+.folder.on{background:color-mix(in srgb,var(--accent-soft) 55%,transparent)}
+.folder.drop-into{box-shadow:inset 0 0 0 2px var(--accent);background:var(--accent-soft)}
 .item .open{display:block;width:100%;text-align:left;padding:9px 30px 9px 10px;border-radius:8px}
 .item .t{display:block;font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .item .d{display:block;font-size:12px;color:var(--ink-2);margin-top:2px}
@@ -280,7 +298,7 @@ body.dragging .drop{display:flex}
 <aside class="side" id="side">
   <div class="side-head">
     <h1>メモ帳 <button class="help" id="helpBtn" title="使い方を開く" aria-label="使い方を開く">？</button><button class="help" id="settingsBtn" title="設定" aria-label="設定">⚙</button></h1>
-    <button class="btn primary" id="newNote">＋ 新しいメモ</button>
+    <div class="side-new"><button class="btn primary" id="newNote">＋ 新しいメモ</button><button class="btn" id="newFolder" title="フォルダを作る">＋ フォルダ</button></div>
   </div>
   <div class="gsearch">
     <input id="gq" type="search" placeholder="すべてのメモを検索" aria-label="すべてのメモを検索" autocomplete="off">
@@ -407,8 +425,8 @@ const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','
 const PLACEHOLDER = 'ここに書き始めましょう';
 const KEY = 'wysimd.v1';
 
-const MANUAL = "# メモ帳の使い方\n\nこのメモはロックされています。編集したいときは右上の鍵をクリックして解除してください。削除されても、左上の「？」からいつでも入れ直せます。\n\n## 画面の見方\n\n| 場所 | 内容 |\n| --- | --- |\n| サイドバー | メモの一覧（並びは自由に入れ替え可）。上に「すべてのメモを検索」、下に保存先 |\n| 上部バー | ＜ ＞（サイドバーを隠す／表示。スマホは☰）、現在のメモのタイトル、↶ ↷（元に戻す／やり直す）、鍵（ロック）、検索、ファイル、Markdownを表示 |\n| 編集エリア | 行をクリックすると、その行だけ元のMarkdownが現れて編集できる |\n\n左上の「＜」かCtrl/⌘+`\\`でサイドバーを隠せます。隠すとボタンが「＞」に変わり、押すと戻ります（隠した状態は次に開いたときも続きます）。スマホなど画面が狭いときは「☰」でサイドバーを開閉し、上部バーの操作は「…」にまとまります。\n\n## 基本の書き方\n\n| 書きたいもの | 書き方 | 補足 |\n| --- | --- | --- |\n| 見出し | `# 見出し`（`#`は1〜6個） | 最初の行がメモのタイトルになる |\n| 箇条書き | `- 項目` | Enterで次の項目。空の項目でEnterすると抜ける |\n| 番号付き | `1. 項目` | 番号は表示時に1から振り直す。`1.` だけで書いてもよい |\n| チェックボックス | `- [ ] やること` | 四角をクリックで切り替え |\n| 太字 | `**文字**` | Ctrl/⌘+B |\n| 斜体 | `*文字*` | Ctrl/⌘+I |\n| コード | `` `文字` `` | Ctrl/⌘+E |\n| 取り消し線 | `~~文字~~` |  |\n| リンク | `[文字](https://…)` | Ctrl/⌘を押しながらクリックで開く |\n| 引用 | `> 文章` |  |\n| コードブロック | ```` ``` ```` で囲む | 中ではEnterが改行。閉じの ```` ``` ```` の行末でEnterで抜ける |\n| 区切り線 | `---` |  |\n\n- Ctrl/⌘+B（太字）・I（斜体）・E（コード）は切り替えです。文字を選んでから押すとその部分を囲み、もう一度押すと囲みが外れます。何も選ばずに押すと記号だけが入り、そのまま打てます\n- 箇条書きの中でTab：字下げ。Shift+Tabで戻す。番号付きは字下げすると `1.` から\n- Shift+Enter：同じ行の中で改行\n- 行頭でBackspace：前の行とつなぐ\n- Esc：編集をやめる。そのあとEnterで同じ場所に戻ります。↑↓←→を押すと、カーソルがそのまま動いたように上下の行や前後の文字へ入ります（マウスは要りません）\n\n## 表の書き方\n\n`| 名前 | 点数` と書いてEnterを押すと、行末の `|` と区切り行 `| --- | --- |` が自動で入り、次の行が `| ` で始まります。あとはセルを `|` で区切りながら書き、Enterで次の行へ。行頭に `|` だけの状態でEnterを押すと表を抜けます。\n\n- Tab／Shift+Tab：次／前のセルへ。最後のセルでTabするとセルを追加\n- 編集を終えると縦線が揃うよう自動で整形\n- 区切り行を `:---` `:---:` `---:` にすると左寄せ・中央・右寄せ\n- セルの中に `|` を書くときは `\\|`\n\n## 検索と置換\n\n**このメモ内**：上部の「検索」か Ctrl/⌘+F。Ctrl/⌘+H で置換欄も開きます（バー内の「置換」でも切り替え）。\n\n- Aa：大文字と小文字を区別、.*：正規表現\n- Enter／↓で次、Shift+Enter／↑で前。該当する行は薄く色が付き、いま見ている一致はその行の元のMarkdownの中で反転\n- Esc：閉じて、その一致箇所を選択した状態で編集に入る\n- 置換：1件ずつ（置換後は次へ進む）。すべて置換：一括。Undoで戻せる。正規表現なら `$1` で捕捉した文字を使える\n\n**すべてのメモ**：サイドバー上の検索欄（Ctrl/⌘+Shift+F）。該当するメモだけが件数と抜粋つきで並びます。3件まで表示し、「さらに表示」で残りを開きます。クリックするとそのメモが開き、同じ検索語がメモ内検索に引き継がれます。\n\n## 行の選択\n\n編集中の行でShift+↓（行末側）／Shift+↑（行頭側）を押すと、行単位の選択が始まります。続けてShift+↑↓で範囲を伸ばしたり縮めたりできます。\n\n- Ctrl/⌘+C：選択した行のMarkdownをコピー\n- Ctrl/⌘+X、Backspace、Delete：選択した行を削除\n- Ctrl/⌘+V：選択した行をクリップボードの内容で置き換え（複数行なら1行ずつのブロックになります）\n- Tab／Shift+Tab、Alt+Shift+→／←：選択した行をまとめて字下げ／戻す\n- Alt+Shift+↑／↓：選択した行をまとめて上下に移動\n- 文字を打つ、Enter：選択行を消してその場で入力を始める\n- Esc、矢印キー、クリック：選択を解除\n- Ctrl/⌘+A：メモの全行を選択（そのままCtrl/⌘+Cで全体をコピー）\n\n行の途中から別の行の途中まで、という文字単位の選択はできません。\n\n## メモどうしをつなぐ\n\n`[[メモのタイトル]]` と書くと、そのメモへのリンクになります。\n\n- `[[` と打つと、ほかのメモのタイトルが候補に出ます。続けて文字を打つと絞り込まれ、↑↓で選んでEnterで入ります（Escで閉じる）\n- **Ctrl/⌘+クリック**（スマホはタップ）でそのメモへ移動します。普通のクリックは今までどおりその行の編集です\n- そのタイトルのメモがまだ無いときは点線で表示され、押しても何も起きません。あとでそのタイトルのメモを作れば、自動でつながります\n- リンク先のタイトル（1行目）を変えると、**そのメモを指していたリンクを自動で書き換えます**。何件直したかはトーストで出ます\n- 同じタイトルのメモが複数あるときは、一覧で上のものを開き、その旨を知らせます\n- `` `[[文字]]` `` のようにコードで囲んだものはリンクになりません\n- そのメモを参照しているメモがあれば、本文の下に一覧が出ます。クリックするとそのメモへ移動します\n- フォルダ保存している .md にもそのまま `[[タイトル]]` と書かれるので、ほかのMarkdownアプリでも読めます\n\n## メモの管理とロック\n\n- 新しいメモ：「＋ 新しいメモ」（一覧の先頭に入ります）\n- 並べ替え：一覧の項目をドラッグして好きな位置へ。スマホでは項目を長押しして持ち上げてから指を動かす（端まで運ぶと一覧がスクロール）。更新しても並びは変わりません\n- 削除：一覧の項目にマウスを乗せて「×」→「削除する」\n- ロック：上部の鍵をクリック。ロック中は本文を編集・削除できません。閲覧・検索・コピー・.md保存はできます。もう一度クリックで解除\n- 元に戻す／やり直す：↶ ↷、Ctrl/⌘+Z、Ctrl/⌘+Shift+Z（Ctrl+Y）。履歴はメモごと\n- Markdownを表示：メモ全体を生のMarkdownとして表示・編集\n- ？：この使い方を開く（削除されていれば入れ直す）\n\n## ファイルの読み込みと書き出し\n\n上部バーの「ファイル」（スマホは「…」）にまとまっています。1ファイル＝1メモです。\n\n| メニュー | すること |\n| --- | --- |\n| 指定したファイルを開く | 選んだ.md／.txt／.eml／.msg（複数可）をメモとして追加 |\n| .zip内のすべての.mdを開く | .zipの中の.mdをすべてメモとして追加（書き出した控えを戻すとき） |\n| フォルダ内のすべての.mdを開く | 選んだフォルダの.mdをすべて一度だけ読み込む（Chrome/Edge） |\n| このファイルを.mdで保存 | 表示中のメモを.mdファイルとしてダウンロード |\n| すべてのファイルを保存 → フォルダへ書き出し | 選んだフォルダに全メモを `タイトル.md` として一度だけ書き出す（Chrome/Edge） |\n| すべてのファイルを保存 → .zipで保存 | 全メモを1つの.zipにまとめる。スマホでは共有シートが開くので、ファイルアプリやクラウドにそのまま送れる |\n\n- .mdや.txt、.eml、.msg、.zipを画面にドラッグして落としても追加できます\n- **メールも読めます**（`.eml` と Outlook の `.msg`）。件名がタイトル、続けて差出人・宛先・日時、その下が本文になります。本文はプレーンな文面を優先し、HTMLしかないメールはタグを外した文章にします。引用（`>`）はそのまま引用として表示されます。添付ファイルは取り込まず、名前だけ末尾に並べます\n- `.msg` で本文がRTF形式しか入っていない場合は取り出せません（その旨を本文に書きます）。暗号化・署名付きのメールも中身は読めません\n- すでに同じ内容のメモがあるファイルは飛ばします。控えを読み直しても二重になりません\n- フォルダへの書き出し・読み込みは一回きりで、そのフォルダを保存先にはしません\n- スマホの「…」には「すべてをコピー」もあり、表示中のメモのMarkdownをまるごとクリップボードへ送れます\n\n## 保存先\n\n最初に開いたとき（Chrome/Edgeでパソコンに置いたHTMLを開いた場合）に、保存先を選ぶ画面が出ます。\n\n- ブラウザに保存：このブラウザの中に保存。ファイルは作らない。最後の変更から0.4秒後に自動保存\n- フォルダに保存：選んだフォルダに各メモを `タイトル.md` として保存。最後の変更から0.7秒後に書き戻し。最初の行を変えるとファイル名も追従、削除するとファイルも消える。フォルダに他のエディタで.mdを追加すると「再読み込み」で取り込む\n\nいまの保存先はサイドバー下に「ブラウザ（ローカルストレージ）」または「ローカルPC（フォルダ名）」と出ています。「保存先の切り替え」で変えられます。\n\n- ブラウザ → ローカルPC：フォルダを選ぶと、いまのメモをそのフォルダに書き出し、フォルダにある.mdも読み込みます\n- ローカルPC → ブラウザ：「切り替える」を押すと、以後はブラウザに保存します。メモはブラウザに残り、フォルダの.mdも消えません\n\nブラウザを開き直したときなどにフォルダへの許可が切れていると、再接続を促す画面が出ます。「接続する」で保存を再開します。「あとで」を選ぶとサイドバー下に「未接続」と出て、接続するまで変更はブラウザにだけ残ります（接続したときにフォルダへ反映します）。\n\nフォルダ保存はChrome/Edge限定で、Claude上の公開版・Firefox・Safari・スマホでは「保存先の切り替え」は出ません。ブラウザの閲覧データを消すとブラウザ内のメモは消えるので、大事なものはフォルダ保存か、「ファイル」→「すべてのファイルを保存」で控えを。\n\n**フォルダ保存中に食い違ったとき**：ブラウザ側と.mdファイルの両方が変わっていたら、更新が新しいほうを残し、負けたほうを「○○（ブラウザ側の写し）」「○○（フォルダ側の写し）」という別のメモにします。どちらの内容も消えません。\n\n## 配色を変える\n\n左上の「⚙」→「配色」で、見た目の色を変えられます（このブラウザにだけ保存されます）。\n\n- **外観**：OSに合わせる／明るい／暗い。「OSに合わせる」なら、OSの設定が変わると自動で切り替わります\n- **配色**：既定・セピア・グレー・高コントラストから選べます\n- **9色の指定**：背景・紙・文字・薄い文字・罫線・アクセント・薄いアクセント・コードの背景・警告を、色見本をクリックして個別に決められます。明るい外観と暗い外観の色は別々に覚えるので、いま表示している側の色を編集します\n- 各色の「既定」でその色だけ戻り、右上の「色を既定に戻す」で外観・配色・個別の色がすべて戻ります\n- 配色を選び直すと、個別に変えた色は戻ります\n\n## ショートカットキーの変更\n\n左上の「⚙」→「キーボード」で、ショートカットキーを変えられます（このブラウザにだけ保存されます）。\n\n| 操作 | 場面 | 既定 |\n| --- | --- | --- |\n| このメモ内を検索／置換／すべてのメモを検索 | いつでも | Ctrl/⌘+F／+H／+Shift+F |\n| 元に戻す／やり直す | いつでも | Ctrl/⌘+Z／+Shift+Z |\n| サイドバーの表示 | いつでも | Ctrl/⌘+`\\` |\n| 保存 | いつでも | Ctrl/⌘+S |\n| 全行を選択 | いつでも | Ctrl/⌘+A |\n| 太字／斜体／コード | 編集中 | Ctrl/⌘+B／+I／+E |\n| 取り消し線 | 編集中 | （なし） |\n| 引用の付け外し | 編集中・行選択中 | （なし） |\n| リンクの挿入 | 編集中 | （なし） |\n\n- 「変更」を押してから、割り当てたいキーを押します。Escでやめられます\n- 「なし」で割り当てを消せます。「既定」でその行だけ元に戻り、右上の「すべて既定に戻す」で全部戻ります\n- すでに使われているキーを押すと、その場では変わりません。もう一度同じキーを押すと、そちらへ移ります\n- Enter・Tab・Esc・Backspace・矢印キーは本文の操作に使うので割り当てられません。修飾キー（Ctrl/⌘・Alt・Shift）との組み合わせだけが使えます\n- Ctrl+TやCtrl+Wなど、ブラウザが先に使うキーは効かないことがあります\n- 取り消し線・引用・リンクは、キーを割り当てると使えるようになります。リンクは、文字を選んでいれば `[選んだ文字]()` にしてURLの位置にカーソルが入り、選んでいなければ `[]()` を入れて文字の位置から書き始められます（続けてもう一度押すと取り消せます）\n- 画面が狭いときは、この設定は表示されません\n\n## 困ったときは\n\n- 書式が効かない：`#` や `-` のあとに半角スペースが必要です\n- 表にならない：見出し行の次に `| --- | --- |` の区切り行が必要です。`|` や `-` が全角になっていないか確認してください\n- 「保存先の切り替え」が出ない：ChromeかEdgeで、パソコンに置いたHTMLを直接開いているか確認してください\n- フォントが違って見える：オフラインではWebフォントが読めず、端末の標準フォントで表示されます";
-const MANUAL_VER = 14;
+const MANUAL = "# メモ帳の使い方\n\nこのメモはロックされています。編集したいときは右上の鍵をクリックして解除してください。削除されても、左上の「？」からいつでも入れ直せます。\n\n## 画面の見方\n\n| 場所 | 内容 |\n| --- | --- |\n| サイドバー | メモの一覧（並びは自由に入れ替え可）。上に「すべてのメモを検索」、下に保存先 |\n| 上部バー | ＜ ＞（サイドバーを隠す／表示。スマホは☰）、現在のメモのタイトル、↶ ↷（元に戻す／やり直す）、鍵（ロック）、検索、ファイル、Markdownを表示 |\n| 編集エリア | 行をクリックすると、その行だけ元のMarkdownが現れて編集できる |\n\n左上の「＜」かCtrl/⌘+`\\`でサイドバーを隠せます。隠すとボタンが「＞」に変わり、押すと戻ります（隠した状態は次に開いたときも続きます）。スマホなど画面が狭いときは「☰」でサイドバーを開閉し、上部バーの操作は「…」にまとまります。\n\n## 基本の書き方\n\n| 書きたいもの | 書き方 | 補足 |\n| --- | --- | --- |\n| 見出し | `# 見出し`（`#`は1〜6個） | 最初の行がメモのタイトルになる |\n| 箇条書き | `- 項目` | Enterで次の項目。空の項目でEnterすると抜ける |\n| 番号付き | `1. 項目` | 番号は表示時に1から振り直す。`1.` だけで書いてもよい |\n| チェックボックス | `- [ ] やること` | 四角をクリックで切り替え |\n| 太字 | `**文字**` | Ctrl/⌘+B |\n| 斜体 | `*文字*` | Ctrl/⌘+I |\n| コード | `` `文字` `` | Ctrl/⌘+E |\n| 取り消し線 | `~~文字~~` |  |\n| リンク | `[文字](https://…)` | Ctrl/⌘を押しながらクリックで開く |\n| 引用 | `> 文章` |  |\n| コードブロック | ```` ``` ```` で囲む | 中ではEnterが改行。閉じの ```` ``` ```` の行末でEnterで抜ける |\n| 区切り線 | `---` |  |\n\n- Ctrl/⌘+B（太字）・I（斜体）・E（コード）は切り替えです。文字を選んでから押すとその部分を囲み、もう一度押すと囲みが外れます。何も選ばずに押すと記号だけが入り、そのまま打てます\n- 箇条書きの中でTab：字下げ。Shift+Tabで戻す。番号付きは字下げすると `1.` から\n- Shift+Enter：同じ行の中で改行\n- 行頭でBackspace：前の行とつなぐ\n- Esc：編集をやめる。そのあとEnterで同じ場所に戻ります。↑↓←→を押すと、カーソルがそのまま動いたように上下の行や前後の文字へ入ります（マウスは要りません）\n\n## 表の書き方\n\n`| 名前 | 点数` と書いてEnterを押すと、行末の `|` と区切り行 `| --- | --- |` が自動で入り、次の行が `| ` で始まります。あとはセルを `|` で区切りながら書き、Enterで次の行へ。行頭に `|` だけの状態でEnterを押すと表を抜けます。\n\n- Tab／Shift+Tab：次／前のセルへ。最後のセルでTabするとセルを追加\n- 編集を終えると縦線が揃うよう自動で整形\n- 区切り行を `:---` `:---:` `---:` にすると左寄せ・中央・右寄せ\n- セルの中に `|` を書くときは `\\|`\n\n## 検索と置換\n\n**このメモ内**：上部の「検索」か Ctrl/⌘+F。Ctrl/⌘+H で置換欄も開きます（バー内の「置換」でも切り替え）。\n\n- Aa：大文字と小文字を区別、.*：正規表現\n- Enter／↓で次、Shift+Enter／↑で前。該当する行は薄く色が付き、いま見ている一致はその行の元のMarkdownの中で反転\n- Esc：閉じて、その一致箇所を選択した状態で編集に入る\n- 置換：1件ずつ（置換後は次へ進む）。すべて置換：一括。Undoで戻せる。正規表現なら `$1` で捕捉した文字を使える\n\n**すべてのメモ**：サイドバー上の検索欄（Ctrl/⌘+Shift+F）。該当するメモだけが件数と抜粋つきで並びます。3件まで表示し、「さらに表示」で残りを開きます。クリックするとそのメモが開き、同じ検索語がメモ内検索に引き継がれます。\n\n## 行の選択\n\n編集中の行でShift+↓（行末側）／Shift+↑（行頭側）を押すと、行単位の選択が始まります。続けてShift+↑↓で範囲を伸ばしたり縮めたりできます。\n\n- Ctrl/⌘+C：選択した行のMarkdownをコピー\n- Ctrl/⌘+X、Backspace、Delete：選択した行を削除\n- Ctrl/⌘+V：選択した行をクリップボードの内容で置き換え（複数行なら1行ずつのブロックになります）\n- Tab／Shift+Tab、Alt+Shift+→／←：選択した行をまとめて字下げ／戻す\n- Alt+Shift+↑／↓：選択した行をまとめて上下に移動\n- 文字を打つ、Enter：選択行を消してその場で入力を始める\n- Esc、矢印キー、クリック：選択を解除\n- Ctrl/⌘+A：メモの全行を選択（そのままCtrl/⌘+Cで全体をコピー）\n\n行の途中から別の行の途中まで、という文字単位の選択はできません。\n\n## メモどうしをつなぐ\n\n`[[メモのタイトル]]` と書くと、そのメモへのリンクになります。\n\n- `[[` と打つと、ほかのメモのタイトルが候補に出ます。続けて文字を打つと絞り込まれ、↑↓で選んでEnterで入ります（Escで閉じる）\n- **Ctrl/⌘+クリック**（スマホはタップ）でそのメモへ移動します。普通のクリックは今までどおりその行の編集です\n- そのタイトルのメモがまだ無いときは点線で表示され、押しても何も起きません。あとでそのタイトルのメモを作れば、自動でつながります\n- リンク先のタイトル（1行目）を変えると、**そのメモを指していたリンクを自動で書き換えます**。何件直したかはトーストで出ます\n- 同じタイトルのメモが複数あるときは、一覧で上のものを開き、その旨を知らせます\n- `` `[[文字]]` `` のようにコードで囲んだものはリンクになりません\n- そのメモを参照しているメモがあれば、本文の下に一覧が出ます。クリックするとそのメモへ移動します\n- フォルダ保存している .md にもそのまま `[[タイトル]]` と書かれるので、ほかのMarkdownアプリでも読めます\n\n## フォルダで整理する\n\nメモはフォルダに入れて整理できます。ファイルの整理と同じ考え方で、1つのメモはどこか1つのフォルダに入ります。\n\n- **作る**：サイドバー上の「＋ フォルダ」。名前をその場で入力します（Escでやめる）。直前に選んでいたフォルダの中に作られます\n- **入れる**：一覧のメモをフォルダへドラッグします。フォルダ自体をドラッグすれば、中身ごと move できます。スマホは長押しして動かします\n- **開け閉め**：フォルダ名をクリック。右の数字はその中のメモの数（下の階層も含む）。開け閉めの状態は次に開いたときも続きます\n- **名前を変える**：フォルダにマウスを乗せて「✎」。中のメモも一緒についてきます\n- **削除**：「×」→「削除する」。**中のメモは消えず、1つ上の階層へ移ります**\n- 新しいメモは、最後に選んだフォルダに入ります\n- 階層の深さに制限はありません。ただしフォルダ名に `/ \\ : * ? \" < > |` は使えないので、入力しても取り除かれます\n\n**フォルダ保存しているとき**は、画面のフォルダがそのままパソコンのフォルダになります。メモを移すとファイルも移動し、空になったフォルダは片付けます。エクスプローラ側でサブフォルダを作って .md を置けば、そのフォルダのメモとして取り込みます。`.zip` の控えにもフォルダの形がそのまま入ります。\n\n## メモの管理とロック\n\n- 新しいメモ：「＋ 新しいメモ」（一覧の先頭に入ります）\n- 並べ替え：一覧の項目をドラッグして好きな位置へ。スマホでは項目を長押しして持ち上げてから指を動かす（端まで運ぶと一覧がスクロール）。更新しても並びは変わりません\n- 削除：一覧の項目にマウスを乗せて「×」→「削除する」\n- ロック：上部の鍵をクリック。ロック中は本文を編集・削除できません。閲覧・検索・コピー・.md保存はできます。もう一度クリックで解除\n- 元に戻す／やり直す：↶ ↷、Ctrl/⌘+Z、Ctrl/⌘+Shift+Z（Ctrl+Y）。履歴はメモごと\n- Markdownを表示：メモ全体を生のMarkdownとして表示・編集\n- ？：この使い方を開く（削除されていれば入れ直す）\n\n## ファイルの読み込みと書き出し\n\n上部バーの「ファイル」（スマホは「…」）にまとまっています。1ファイル＝1メモです。\n\n| メニュー | すること |\n| --- | --- |\n| 指定したファイルを開く | 選んだ.md／.txt／.eml／.msg（複数可）をメモとして追加 |\n| .zip内のすべての.mdを開く | .zipの中の.mdをすべてメモとして追加（書き出した控えを戻すとき） |\n| フォルダ内のすべての.mdを開く | 選んだフォルダの.mdをすべて一度だけ読み込む（Chrome/Edge） |\n| このファイルを.mdで保存 | 表示中のメモを.mdファイルとしてダウンロード |\n| すべてのファイルを保存 → フォルダへ書き出し | 選んだフォルダに全メモを `タイトル.md` として一度だけ書き出す（Chrome/Edge） |\n| すべてのファイルを保存 → .zipで保存 | 全メモを1つの.zipにまとめる。スマホでは共有シートが開くので、ファイルアプリやクラウドにそのまま送れる |\n\n- .mdや.txt、.eml、.msg、.zipを画面にドラッグして落としても追加できます\n- **メールも読めます**（`.eml` と Outlook の `.msg`）。件名がタイトル、続けて差出人・宛先・日時、その下が本文になります。本文はプレーンな文面を優先し、HTMLしかないメールはタグを外した文章にします。引用（`>`）はそのまま引用として表示されます。添付ファイルは取り込まず、名前だけ末尾に並べます\n- `.msg` で本文がRTF形式しか入っていない場合は取り出せません（その旨を本文に書きます）。暗号化・署名付きのメールも中身は読めません\n- すでに同じ内容のメモがあるファイルは飛ばします。控えを読み直しても二重になりません\n- フォルダへの書き出し・読み込みは一回きりで、そのフォルダを保存先にはしません\n- スマホの「…」には「すべてをコピー」もあり、表示中のメモのMarkdownをまるごとクリップボードへ送れます\n\n## 保存先\n\n最初に開いたとき（Chrome/Edgeでパソコンに置いたHTMLを開いた場合）に、保存先を選ぶ画面が出ます。\n\n- ブラウザに保存：このブラウザの中に保存。ファイルは作らない。最後の変更から0.4秒後に自動保存\n- フォルダに保存：選んだフォルダに各メモを `タイトル.md` として保存。最後の変更から0.7秒後に書き戻し。最初の行を変えるとファイル名も追従、削除するとファイルも消える。フォルダに他のエディタで.mdを追加すると「再読み込み」で取り込む\n\nいまの保存先はサイドバー下に「ブラウザ（ローカルストレージ）」または「ローカルPC（フォルダ名）」と出ています。「保存先の切り替え」で変えられます。\n\n- ブラウザ → ローカルPC：フォルダを選ぶと、いまのメモをそのフォルダに書き出し、フォルダにある.mdも読み込みます\n- ローカルPC → ブラウザ：「切り替える」を押すと、以後はブラウザに保存します。メモはブラウザに残り、フォルダの.mdも消えません\n\nブラウザを開き直したときなどにフォルダへの許可が切れていると、再接続を促す画面が出ます。「接続する」で保存を再開します。「あとで」を選ぶとサイドバー下に「未接続」と出て、接続するまで変更はブラウザにだけ残ります（接続したときにフォルダへ反映します）。\n\nフォルダ保存はChrome/Edge限定で、Claude上の公開版・Firefox・Safari・スマホでは「保存先の切り替え」は出ません。ブラウザの閲覧データを消すとブラウザ内のメモは消えるので、大事なものはフォルダ保存か、「ファイル」→「すべてのファイルを保存」で控えを。\n\n**フォルダ保存中に食い違ったとき**：ブラウザ側と.mdファイルの両方が変わっていたら、更新が新しいほうを残し、負けたほうを「○○（ブラウザ側の写し）」「○○（フォルダ側の写し）」という別のメモにします。どちらの内容も消えません。\n\n## 配色を変える\n\n左上の「⚙」→「配色」で、見た目の色を変えられます（このブラウザにだけ保存されます）。\n\n- **外観**：OSに合わせる／明るい／暗い。「OSに合わせる」なら、OSの設定が変わると自動で切り替わります\n- **配色**：既定・セピア・グレー・高コントラストから選べます\n- **9色の指定**：背景・紙・文字・薄い文字・罫線・アクセント・薄いアクセント・コードの背景・警告を、色見本をクリックして個別に決められます。明るい外観と暗い外観の色は別々に覚えるので、いま表示している側の色を編集します\n- 各色の「既定」でその色だけ戻り、右上の「色を既定に戻す」で外観・配色・個別の色がすべて戻ります\n- 配色を選び直すと、個別に変えた色は戻ります\n\n## ショートカットキーの変更\n\n左上の「⚙」→「キーボード」で、ショートカットキーを変えられます（このブラウザにだけ保存されます）。\n\n| 操作 | 場面 | 既定 |\n| --- | --- | --- |\n| このメモ内を検索／置換／すべてのメモを検索 | いつでも | Ctrl/⌘+F／+H／+Shift+F |\n| 元に戻す／やり直す | いつでも | Ctrl/⌘+Z／+Shift+Z |\n| サイドバーの表示 | いつでも | Ctrl/⌘+`\\` |\n| 保存 | いつでも | Ctrl/⌘+S |\n| 全行を選択 | いつでも | Ctrl/⌘+A |\n| 太字／斜体／コード | 編集中 | Ctrl/⌘+B／+I／+E |\n| 取り消し線 | 編集中 | （なし） |\n| 引用の付け外し | 編集中・行選択中 | （なし） |\n| リンクの挿入 | 編集中 | （なし） |\n\n- 「変更」を押してから、割り当てたいキーを押します。Escでやめられます\n- 「なし」で割り当てを消せます。「既定」でその行だけ元に戻り、右上の「すべて既定に戻す」で全部戻ります\n- すでに使われているキーを押すと、その場では変わりません。もう一度同じキーを押すと、そちらへ移ります\n- Enter・Tab・Esc・Backspace・矢印キーは本文の操作に使うので割り当てられません。修飾キー（Ctrl/⌘・Alt・Shift）との組み合わせだけが使えます\n- Ctrl+TやCtrl+Wなど、ブラウザが先に使うキーは効かないことがあります\n- 取り消し線・引用・リンクは、キーを割り当てると使えるようになります。リンクは、文字を選んでいれば `[選んだ文字]()` にしてURLの位置にカーソルが入り、選んでいなければ `[]()` を入れて文字の位置から書き始められます（続けてもう一度押すと取り消せます）\n- 画面が狭いときは、この設定は表示されません\n\n## 困ったときは\n\n- 書式が効かない：`#` や `-` のあとに半角スペースが必要です\n- 表にならない：見出し行の次に `| --- | --- |` の区切り行が必要です。`|` や `-` が全角になっていないか確認してください\n- 「保存先の切り替え」が出ない：ChromeかEdgeで、パソコンに置いたHTMLを直接開いているか確認してください\n- フォントが違って見える：オフラインではWebフォントが読めず、端末の標準フォントで表示されます";
+const MANUAL_VER = 15;
 const SAMPLE = [
   '# メモ帳へようこそ',
   '',
@@ -452,13 +470,71 @@ const sortedNotes = () => [...notes].sort((a, b) => (a.order ?? 0) - (b.order ??
 const topOrder = () => notes.length ? Math.min(...notes.map(n => n.order ?? 0)) - 1 : 0;
 const isLocked = () => !!(cur() && cur().locked);
 function lockedToast() { toast('このメモはロック中です。右上の鍵で解除できます'); }
-const newNote = (md = '') => ({ id: 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), blocks: splitToBlocks(md), updated: Date.now(), order: topOrder() });
+const newNote = (md = '', folder = '') => ({ id: 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), blocks: splitToBlocks(md), updated: Date.now(), order: topOrder(), folder });
 
+/* ---------- folders ---------- */
+// A note lives in exactly one folder, like a file on disk. `note.folder` is the path
+// ("仕事/議事録", empty at the root); `folders` only remembers open/closed state and
+// folders that hold nothing yet.
+let folders = [];
+const folderOf = n => n.folder || '';
+const parentOf = p => (p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : '');
+const baseOf = p => p.slice(p.lastIndexOf('/') + 1);
+function folderPaths() {
+  const set = new Set();
+  const add = p => { while (p) { set.add(p); p = parentOf(p); } };
+  for (const f of folders) add(f.path);
+  for (const n of notes) add(folderOf(n));
+  return [...set].sort((a, b) => a.localeCompare(b, 'ja'));
+}
+const folderOpen = p => { const f = folders.find(x => x.path === p); return !f || f.open !== false; };
+function setFolderOpen(p, open) {
+  const f = folders.find(x => x.path === p);
+  if (f) f.open = open; else folders.push({ path: p, open });
+  persist();
+}
+const notesIn = p => notes.filter(n => folderOf(n) === p).length;
+const deepCount = p => notes.filter(n => folderOf(n) === p || folderOf(n).startsWith(p + '/')).length;
+function uniqueFolder(parent, name) { // "新しいフォルダ", "新しいフォルダ 2", …
+  const all = new Set(folderPaths());
+  let base = name, k = 2, path = parent ? parent + '/' + base : base;
+  while (all.has(path)) { base = name + ' ' + k++; path = parent ? parent + '/' + base : base; }
+  return path;
+}
+function renameFolder(from, to) {
+  if (!to || from === to) return;
+  for (const n of notes) {
+    const p = folderOf(n);
+    if (p === from) n.folder = to;
+    else if (p.startsWith(from + '/')) n.folder = to + p.slice(from.length);
+    else continue;
+    n.updated = Date.now(); fsMark(n.id);
+  }
+  for (const f of folders) {
+    if (f.path === from) f.path = to;
+    else if (f.path.startsWith(from + '/')) f.path = to + f.path.slice(from.length);
+  }
+  if (activeFolder === from) activeFolder = to;
+  else if (activeFolder.startsWith(from + '/')) activeFolder = to + activeFolder.slice(from.length);
+  persist(); renderList();
+}
+function removeFolder(path) { // the notes inside move up to the parent, nothing is thrown away
+  const up = parentOf(path);
+  let moved = 0;
+  for (const n of notes) {
+    const p = folderOf(n);
+    if (p === path || p.startsWith(path + '/')) { n.folder = up; n.updated = Date.now(); fsMark(n.id); moved++; }
+  }
+  folders = folders.filter(f => f.path !== path && !f.path.startsWith(path + '/'));
+  if (activeFolder === path || activeFolder.startsWith(path + '/')) activeFolder = up;
+  persist(); renderList();
+  toast(moved ? 'フォルダを削除し、' + moved + '件を' + (up ? '「' + baseOf(up) + '」' : '直下') + 'に移しました' : 'フォルダを削除しました');
+}
 let firstRun = false;
 function load() {
   try {
     const j = JSON.parse(localStorage.getItem(KEY));
-    if (j && Array.isArray(j.notes) && j.notes.length) { notes = j.notes; currentId = j.currentId; }
+    if (j && Array.isArray(j.notes) && j.notes.length) { notes = j.notes; currentId = j.currentId; folders = Array.isArray(j.folders) ? j.folders : []; }
   } catch (e) {}
   if (notes.some(n => n.order == null)) [...notes].sort((a, b) => b.updated - a.updated).forEach((n, i) => { if (n.order == null) n.order = i; });
   // regroup blocks saved by older versions (e.g. table rows stored one per block)
@@ -472,7 +548,7 @@ function load() {
   for (const m of notes) if (m.manual && m.locked && (m.manualVer || 0) < MANUAL_VER) { m.blocks = splitToBlocks(MANUAL); m.manualVer = MANUAL_VER; }
   if (!cur()) currentId = notes[0].id;
 }
-function persist() { try { localStorage.setItem(KEY, JSON.stringify({ notes, currentId })); } catch (e) {} }
+function persist() { try { localStorage.setItem(KEY, JSON.stringify({ notes, currentId, folders })); } catch (e) {} }
 function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(persist, 400); if (currentId) fsMark(currentId); }
 
 /* ---------- markdown ---------- */
@@ -1789,14 +1865,39 @@ function fmtDate(ts) {
   if (d.getFullYear() === now.getFullYear()) return (d.getMonth() + 1) + '/' + d.getDate();
   return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
 }
+let renamingFolder = null, confirmFolder = null, activeFolder = '';
 function renderList() {
   if (gsearch.q) { renderSearchList(); return; }
-  const sorted = sortedNotes();
   listEl.innerHTML = '';
-  for (const n of sorted) {
+  const inFolder = new Map();
+  for (const n of sortedNotes()) { const p = folderOf(n); (inFolder.get(p) || inFolder.set(p, []).get(p)).push(n); }
+  const all = folderPaths(), childrenOf = parent => all.filter(p => parentOf(p) === parent);
+  const addFolder = (path, depth) => {
+    const row = document.createElement('div');
+    row.className = 'folder' + (folderOpen(path) ? ' open' : '') + (path === activeFolder ? ' on' : '');
+    row.dataset.path = path; row.style.setProperty('--d', depth);
+    row.draggable = renamingFolder !== path && confirmFolder !== path;
+    if (confirmFolder === path) {
+      row.classList.add('confirm');
+      row.innerHTML = '<span class="t">フォルダ「' + esc(baseOf(path)) + '」を削除しますか？中のメモは上の階層に移ります。</span>'
+        + '<span class="acts"><button class="btn danger" data-fact="del">削除する</button><button class="btn" data-fact="cancel">やめる</button></span>';
+    } else if (renamingFolder === path) {
+      row.innerHTML = '<span class="tw">▾</span><input class="fedit" value="' + esc(baseOf(path)) + '" aria-label="フォルダ名">';
+    } else {
+      row.innerHTML = '<span class="tw">' + (folderOpen(path) ? '▾' : '▸') + '</span><span class="fname">' + esc(baseOf(path)) + '</span>'
+        + '<span class="fn">' + deepCount(path) + '</span>'
+        + '<button class="fed" aria-label="フォルダ名を変える">✎</button><button class="fx" aria-label="このフォルダを削除">×</button>';
+    }
+    listEl.append(row);
+    if (!folderOpen(path) || confirmFolder === path) return;
+    for (const c of childrenOf(path)) addFolder(c, depth + 1);
+    for (const n of inFolder.get(path) || []) addNote(n, depth + 1);
+  };
+  const addNote = (n, depth) => {
     const item = document.createElement('div');
     item.className = 'item' + (n.id === currentId ? ' active' : '');
     item.dataset.id = n.id; item.draggable = confirmId !== n.id;
+    item.style.setProperty('--d', depth);
     if (confirmId === n.id) {
       item.classList.add('confirm');
       item.innerHTML = '<span class="t">このメモを削除しますか？元に戻せません。</span><span class="acts"><button class="btn danger" data-act="del">削除する</button><button class="btn" data-act="cancel">やめる</button></span>';
@@ -1804,8 +1905,47 @@ function renderList() {
       item.innerHTML = '<button class="open"><span class="t">' + (n.locked ? '<span class="lk">🔒</span>' : '') + esc(noteTitle(n)) + '</span><span class="d">' + fmtDate(n.updated) + '</span></button>' + (n.locked ? '' : '<button class="x" aria-label="このメモを削除">×</button>');
     }
     listEl.append(item);
-  }
+  };
+  for (const p of childrenOf('')) addFolder(p, 0);
+  for (const n of inFolder.get('') || []) addNote(n, 0);
+  if (!listEl.children.length) listEl.innerHTML = '<div class="empty">メモがありません</div>';
 }
+listEl.addEventListener('click', e => {
+  const row = e.target.closest('.folder'); if (!row) return;
+  const path = row.dataset.path, act = e.target.dataset.fact;
+  if (act === 'del') { confirmFolder = null; removeFolder(path); return; }
+  if (act === 'cancel') { confirmFolder = null; renderList(); return; }
+  if (e.target.closest('.fx')) { confirmFolder = path; renderList(); return; }
+  if (e.target.closest('.fed')) { startRename(path); return; }
+  if (e.target.closest('.fedit')) return;
+  activeFolder = path; // new notes and folders go here
+  setFolderOpen(path, !folderOpen(path)); renderList();
+});
+function startRename(path) {
+  renamingFolder = path; renderList();
+  const inp = listEl.querySelector('.fedit'); if (inp) { inp.focus(); inp.select(); }
+}
+listEl.addEventListener('dblclick', e => { const name = e.target.closest('.fname'); if (name) startRename(e.target.closest('.folder').dataset.path); });
+listEl.addEventListener('keydown', e => {
+  if (!e.target.classList.contains('fedit')) return;
+  if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
+  if (e.key === 'Escape') { e.preventDefault(); renamingFolder = null; renderList(); }
+});
+listEl.addEventListener('focusout', e => {
+  if (!e.target.classList.contains('fedit') || !renamingFolder) return;
+  const from = renamingFolder, name = e.target.value.replace(/[\\/:*?"<>|]/g, '').trim();
+  renamingFolder = null;
+  if (!name || name === baseOf(from)) { renderList(); return; }
+  renameFolder(from, uniqueFolder(parentOf(from), name));
+});
+$('#newFolder').addEventListener('click', () => {
+  const here = activeFolder;
+  const path = uniqueFolder(here, '新しいフォルダ');
+  folders.push({ path, open: true });
+  if (here) setFolderOpen(here, true);
+  activeFolder = path; // what you make next goes inside the folder you just made
+  persist(); startRename(path);
+});
 listEl.addEventListener('click', e => {
   const item = e.target.closest('.item'); if (!item) return;
   const id = item.dataset.id, act = e.target.dataset.act;
@@ -1822,55 +1962,85 @@ listEl.addEventListener('click', e => {
     }
   }
 });
-let dragId = null, dropTarget = null;
-function dndClear() { for (const el of listEl.querySelectorAll('.drop-before,.drop-after,.dragging')) el.classList.remove('drop-before', 'drop-after', 'dragging'); dropTarget = null; }
-function dndMark(item, y) {
-  for (const el of listEl.querySelectorAll('.drop-before,.drop-after')) el.classList.remove('drop-before', 'drop-after');
+let dragId = null, dragFolder = null, dropTarget = null;
+function dndClear() { for (const el of listEl.querySelectorAll('.drop-before,.drop-after,.drop-into,.dragging')) el.classList.remove('drop-before', 'drop-after', 'drop-into', 'dragging'); dropTarget = null; }
+function dndMark(row, y) {
+  for (const el of listEl.querySelectorAll('.drop-before,.drop-after,.drop-into')) el.classList.remove('drop-before', 'drop-after', 'drop-into');
   dropTarget = null;
-  if (item && item.dataset.id !== dragId) {
-    const r = item.getBoundingClientRect(), before = y < r.top + r.height / 2;
-    item.classList.add(before ? 'drop-before' : 'drop-after'); dropTarget = { id: item.dataset.id, before };
+  if (!row) return;
+  if (row.classList.contains('folder')) { // dropping onto a folder puts the note (or folder) inside it
+    const path = row.dataset.path;
+    if (dragFolder && (path === dragFolder || path.startsWith(dragFolder + '/'))) return;
+    row.classList.add('drop-into'); dropTarget = { into: path };
+    return;
   }
+  if (dragFolder || row.dataset.id === dragId) return;
+  const r = row.getBoundingClientRect(), before = y < r.top + r.height / 2;
+  row.classList.add(before ? 'drop-before' : 'drop-after'); dropTarget = { id: row.dataset.id, before };
 }
 function dndCommit() {
-  if (dropTarget) {
+  if (dropTarget && dragFolder) { // moving a whole folder
+    const to = dropTarget.into;
+    if (to !== undefined && to !== dragFolder && !to.startsWith(dragFolder + '/') && parentOf(dragFolder) !== to) {
+      renameFolder(dragFolder, uniqueFolder(to, baseOf(dragFolder)));
+      if (to) setFolderOpen(to, true);
+    }
+  } else if (dropTarget) {
     const arr = sortedNotes(), moving = arr.find(n => n.id === dragId);
-    const rest = arr.filter(n => n.id !== dragId);
-    let at = rest.findIndex(n => n.id === dropTarget.id); if (at < 0) at = rest.length; else if (!dropTarget.before) at++;
-    rest.splice(at, 0, moving);
-    rest.forEach((n, i) => n.order = i);
-    persist(); renderList();
+    if (moving) {
+      const rest = arr.filter(n => n.id !== dragId);
+      let at;
+      if (dropTarget.into !== undefined) { // into a folder: put it at the end of that folder
+        moving.folder = dropTarget.into;
+        setFolderOpen(dropTarget.into, true);
+        const last = rest.map((n, i) => (folderOf(n) === dropTarget.into ? i : -1)).filter(i => i >= 0).pop();
+        at = last == null ? rest.length : last + 1;
+      } else {
+        const target = rest.find(n => n.id === dropTarget.id);
+        moving.folder = target ? folderOf(target) : '';
+        at = rest.findIndex(n => n.id === dropTarget.id); if (at < 0) at = rest.length; else if (!dropTarget.before) at++;
+      }
+      rest.splice(at, 0, moving);
+      rest.forEach((n, i) => n.order = i);
+      moving.updated = Date.now(); fsMark(moving.id);
+      persist(); renderList();
+    }
   }
-  dragId = null; dndClear();
+  dragId = null; dragFolder = null; dndClear();
 }
 listEl.addEventListener('dragstart', e => {
-  const item = e.target.closest('.item'); if (!item || gsearch.q || !item.draggable || touchDnd) { e.preventDefault(); return; }
-  dragId = item.dataset.id; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragId);
-  requestAnimationFrame(() => item.classList.add('dragging'));
+  const row = e.target.closest('.item,.folder');
+  if (!row || gsearch.q || !row.draggable || touchDnd) { e.preventDefault(); return; }
+  if (row.classList.contains('folder')) { dragFolder = row.dataset.path; dragId = null; }
+  else { dragId = row.dataset.id; dragFolder = null; }
+  e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragId || dragFolder);
+  requestAnimationFrame(() => row.classList.add('dragging'));
 });
 listEl.addEventListener('dragover', e => {
-  if (!dragId || touchDnd) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move';
-  dndMark(e.target.closest('.item'), e.clientY);
+  if ((!dragId && !dragFolder) || touchDnd) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  dndMark(e.target.closest('.item,.folder'), e.clientY);
 });
-listEl.addEventListener('drop', e => { if (!dragId || touchDnd) return; e.preventDefault(); dndCommit(); });
-listEl.addEventListener('dragend', () => { if (touchDnd) return; dragId = null; dndClear(); });
+listEl.addEventListener('drop', e => { if ((!dragId && !dragFolder) || touchDnd) return; e.preventDefault(); dndCommit(); });
+listEl.addEventListener('dragend', () => { if (touchDnd) return; dragId = null; dragFolder = null; dndClear(); });
 // touch: long-press lifts the item, then drag; moving before the timer fires is a normal scroll
 let touchDnd = null;
 function touchDndEnd() { if (!touchDnd) return; clearTimeout(touchDnd.timer); cancelAnimationFrame(touchDnd.raf); listEl.classList.remove('touch-dragging'); touchDnd = null; }
 listEl.addEventListener('touchstart', e => {
   touchDndEnd();
-  const item = e.target.closest('.item');
-  if (e.touches.length !== 1 || !item || gsearch.q || !item.draggable || e.target.closest('.x')) return;
+  const item = e.target.closest('.item,.folder');
+  if (e.touches.length !== 1 || !item || gsearch.q || !item.draggable || e.target.closest('.x,.fx')) return;
   const t = e.touches[0];
   touchDnd = { x: t.clientX, y: t.clientY, active: false, raf: 0, timer: setTimeout(() => {
     if (!touchDnd) return;
-    touchDnd.active = true; dragId = item.dataset.id; item.classList.add('dragging'); listEl.classList.add('touch-dragging');
+    touchDnd.active = true;
+    if (item.classList.contains('folder')) { dragFolder = item.dataset.path; dragId = null; } else { dragId = item.dataset.id; dragFolder = null; }
+    item.classList.add('dragging'); listEl.classList.add('touch-dragging');
     if (navigator.vibrate) try { navigator.vibrate(15); } catch (_) {}
     const tick = () => { // auto-scroll while the finger is near the top/bottom edge
       if (!touchDnd || !touchDnd.active) return;
       const r = listEl.getBoundingClientRect(), edge = 44;
       const d = touchDnd.y < r.top + edge ? -(r.top + edge - touchDnd.y) : touchDnd.y > r.bottom - edge ? touchDnd.y - (r.bottom - edge) : 0;
-      if (d) { listEl.scrollTop += Math.max(-12, Math.min(12, d / 3)); dndMark(document.elementFromPoint(touchDnd.x, touchDnd.y)?.closest('#list .item'), touchDnd.y); }
+      if (d) { listEl.scrollTop += Math.max(-12, Math.min(12, d / 3)); dndMark(document.elementFromPoint(touchDnd.x, touchDnd.y)?.closest('#list .item,#list .folder'), touchDnd.y); }
       touchDnd.raf = requestAnimationFrame(tick);
     };
     touchDnd.raf = requestAnimationFrame(tick);
@@ -1882,19 +2052,20 @@ listEl.addEventListener('touchmove', e => {
   if (!touchDnd.active) { if (Math.hypot(t.clientX - touchDnd.x, t.clientY - touchDnd.y) > 10) touchDndEnd(); return; }
   e.preventDefault();
   touchDnd.x = t.clientX; touchDnd.y = t.clientY;
-  dndMark(document.elementFromPoint(t.clientX, t.clientY)?.closest('#list .item'), t.clientY);
+  dndMark(document.elementFromPoint(t.clientX, t.clientY)?.closest('#list .item,#list .folder'), t.clientY);
 }, { passive: false });
 listEl.addEventListener('touchend', e => {
   if (!touchDnd) return;
   const active = touchDnd.active; touchDndEnd();
   if (active) { e.preventDefault(); dndCommit(); } // preventDefault also swallows the click that would open the note
 });
-listEl.addEventListener('touchcancel', () => { if (touchDnd && touchDnd.active) { dragId = null; dndClear(); } touchDndEnd(); });
+listEl.addEventListener('touchcancel', () => { if (touchDnd && touchDnd.active) { dragId = null; dragFolder = null; dndClear(); } touchDndEnd(); });
 listEl.addEventListener('contextmenu', e => { if (touchDnd) e.preventDefault(); }); // long-press menu on Android
 function openNote(id) {
   if (editingEl) leaveEdit(editingEl);
   if (msel) splitMerged();
   currentId = id; confirmId = null; resume = null; // each note starts at its first line
+  activeFolder = folderOf(cur() || {});
   renderNote(); renderList(); persist();
 }
 function deleteNote(id) {
@@ -1908,7 +2079,7 @@ function deleteNote(id) {
 }
 $('#newNote').addEventListener('click', () => {
   if (editingEl) leaveEdit(editingEl);
-  const n = newNote(''); notes.push(n); currentId = n.id; confirmId = null;
+  const n = newNote('', activeFolder); notes.push(n); currentId = n.id; confirmId = null; // the new note joins the folder you picked last
   renderNote(); renderList(); persist(); closeSide();
   enterEdit(blocksEl.firstElementChild, 0);
 });
@@ -2392,12 +2563,14 @@ async function importFiles(fileList) {
   let first = null, added = 0, same = 0;
   for (const f of [...files].reverse()) {
     let md = (await decodeFile(f)).replace(/^\uFEFF/, '');
-    const base = f.name.replace(/\.[^.]+$/, '');
+    const rel = f.name.replace(/\\/g, '/'); // a .md from a .zip or a folder keeps the folder it was in
+    const folder = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '';
+    const base = rel.slice(rel.lastIndexOf('/') + 1).replace(/\.[^.]+$/, '');
     md = md.replace(/\r\n?/g, '\n');
     if (!plainTitleOf(md)) md = '# ' + base + '\n\n' + md; // untitled file: use its name as heading
     if (have.has(md)) { same++; continue; } // the very same text is already a note: a second copy helps no one
     have.add(md);
-    const n = newNote(md); notes.push(n); first = n; fsMark(n.id); added++;
+    const n = newNote(md, folder); notes.push(n); first = n; fsMark(n.id); added++;
   }
   const tail = (skipped ? '（テキスト以外の' + skipped + '件は除外）' : '') + (badMail ? '（読めないメール' + badMail + '件）' : '') + (same ? '（同じ内容の' + same + '件は省略）' : '') + (badZip ? '（読めない.zipが' + badZip + '件）' : '');
   if (!added) { toast('追加するメモはありませんでした' + tail, 3000); return; }
@@ -2457,11 +2630,38 @@ function fsError(err, what) {
   toast(msg, 6000);
 }
 const safeName = t => (t.replace(/[\\/:*?"<>|\u0000-\u001f]/g, '').replace(/\s+/g, ' ').trim().slice(0, 60) || '無題のメモ');
+// one folder in the app is one folder on disk; `note.file` is the path below the chosen folder
+const safeFolder = p => (p || '').split('/').filter(Boolean).map(safeName).join('/'); // safeName('') would become 「無題のメモ」
+let deepWarned = false;
 function fileNameFor(n) {
+  let dir = safeFolder(folderOf(n));
   const base = safeName(noteTitle(n));
-  let name = base + '.md', k = 2;
-  while (notes.some(o => o !== n && o.file === name)) name = base + '-' + (k++) + '.md';
-  return name;
+  if (dir.length + base.length > 180) { // Windows gives up around 260 characters: keep the file, drop the nesting
+    dir = '';
+    if (!deepWarned) { deepWarned = true; toast('フォルダの階層が深すぎるので、このメモは一番上に保存します', 4000); }
+  }
+  const path = k => (dir ? dir + '/' : '') + base + (k ? '-' + k : '') + '.md';
+  let k = 0;
+  while (notes.some(o => o !== n && o.file === path(k))) k = k ? k + 1 : 2;
+  return path(k);
+}
+const dirPart = path => (path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '');
+async function fsDir(path, create) { // walk down to the folder that holds `path`
+  let h = dirHandle;
+  for (const seg of dirPart(path).split('/').filter(Boolean)) {
+    h = await h.getDirectoryHandle(seg, { create });
+    if (!h) return null;
+  }
+  return h;
+}
+// every .md under the chosen folder, with its path ("仕事/議事録/メモ.md")
+async function fsWalk(h, prefix, out) {
+  for await (const [name, child] of h.entries()) {
+    const path = prefix ? prefix + '/' + name : name;
+    if (child.kind === 'directory') { if (!name.startsWith('.')) await fsWalk(child, path, out); }
+    else if (/\.md$/i.test(name)) out.push({ path, handle: child });
+  }
+  return out;
 }
 const shortName = (t, max = 18) => t.length > max ? t.slice(0, max - 1) + '…' : t;
 // the sidebar foot shows where notes are saved; changing it goes through fsDialog()
@@ -2535,7 +2735,7 @@ async function fsConnect(h, fromSetup) {
 }
 // a side that loses a conflict is not thrown away: it stays as its own note, clearly labelled
 function keepLosingCopy(src, md, label) {
-  const n = newNote('# ' + noteTitle(src) + '（' + label + 'の写し）\n\n' + md);
+  const n = newNote('# ' + noteTitle(src) + '（' + label + 'の写し）\n\n' + md, folderOf(src)); // the copy stays beside the original
   n.updated = Date.now();
   notes.push(n); fsMark(n.id);
   return n;
@@ -2544,16 +2744,16 @@ async function fsSyncFromFolder() {
   if (!dirHandle) return;
   const seen = new Set(); let changedCurrent = false, added = 0, clashes = 0;
   try {
-    for await (const [name, h] of dirHandle.entries()) {
-      if (h.kind !== 'file' || !/\.md$/i.test(name)) continue;
+    for (const { path: name, handle: h } of await fsWalk(dirHandle, '', [])) {
       seen.add(name);
       const file = await h.getFile();
       let note = notes.find(n => n.file === name);
       if (!note) {
         // link by expected file name, then by identical content (e.g. reconnecting to the same folder)
         note = notes.find(n => !n.file && fileNameFor(n) === name);
-        if (!note) { const txt = await file.text(); note = notes.find(n => !n.file && n.blocks.join('\n') === txt); if (!note) { const n = newNote(txt.replace(/^\uFEFF/, '')); n.file = name; n.fsMtime = file.lastModified; n.updated = file.lastModified; notes.push(n); added++; continue; } }
+        if (!note) { const txt = await file.text(); note = notes.find(n => !n.file && n.blocks.join('\n') === txt); if (!note) { const n = newNote(txt.replace(/^\uFEFF/, ''), dirPart(name)); n.file = name; n.fsMtime = file.lastModified; n.updated = file.lastModified; notes.push(n); added++; continue; } }
         note.file = name;
+        note.folder = dirPart(name); // moved in the folder: follow it
       }
       if (file.lastModified > (note.fsMtime || 0)) {
         const txt = (await file.text()).replace(/^\uFEFF/, '');
@@ -2589,9 +2789,10 @@ async function fsFlush() {
       const md = n.blocks.join('\n');
       if (!n.file && md.trim() === '') continue; // nothing to write yet
       const name = fileNameFor(n);
-      const fh = await dirHandle.getFileHandle(name, { create: true });
+      const dh = await fsDir(name, true);
+      const fh = await dh.getFileHandle(name.slice(name.lastIndexOf('/') + 1), { create: true });
       const w = await fh.createWritable(); await w.write(md); await w.close();
-      if (n.file && n.file !== name) { try { await dirHandle.removeEntry(n.file); } catch (e) {} }
+      if (n.file && n.file !== name) await fsRemove(n.file);
       n.file = name; n.fsMtime = (await fh.getFile()).lastModified;
     }
     persist();
@@ -2601,7 +2802,29 @@ async function fsFlush() {
     else fsError(err, 'フォルダに書き込めませんでした');
   } finally { fsBusy = false; if (fsDirty.size && dirHandle) fsMark([...fsDirty][0]); }
 }
-async function fsRemove(name) { if (!dirHandle) return; try { await dirHandle.removeEntry(name); } catch (e) {} }
+async function fsRemove(path) {
+  if (!dirHandle) return;
+  try {
+    const dh = await fsDir(path, false);
+    if (dh) await dh.removeEntry(path.slice(path.lastIndexOf('/') + 1));
+  } catch (e) {}
+  await fsPrune(dirPart(path)); // tidy up folders that are now empty
+}
+async function fsPrune(dir) {
+  while (dir) {
+    try {
+      const dh = await fsDir(dir + '/x', false); // the folder itself
+      if (!dh) return;
+      let empty = true;
+      for await (const _ of dh.entries()) { empty = false; break; }
+      if (!empty) return;
+      const up = await fsDir(dir, false);
+      if (!up) return;
+      await up.removeEntry(dir.slice(dir.lastIndexOf('/') + 1));
+    } catch (e) { return; }
+    dir = parentOf(dir);
+  }
+}
 
 /* ---------- backup: one-shot export / import, and a .zip for phones ---------- */
 // zip, written by hand: stored (uncompressed) entries only, which keeps this to a few dozen lines
@@ -2673,7 +2896,8 @@ function backupEntries() {
   for (const n of sortedNotes()) {
     const md = n.blocks.join('\n');
     if (!md.trim()) continue;
-    out.push({ name: uniqueMdName(safeName(noteTitle(n)), used), md, updated: n.updated || Date.now() });
+    const dir = safeFolder(folderOf(n));
+    out.push({ name: uniqueMdName((dir ? dir + '/' : '') + safeName(noteTitle(n)), used), md, updated: n.updated || Date.now() });
   }
   return out;
 }
@@ -2686,7 +2910,9 @@ async function exportToFolder() {
   try { h = await pickDirectory(); } catch (err) { fsError(err, 'フォルダを開けませんでした'); return; }
   try {
     for (const it of items) {
-      const fh = await h.getFileHandle(it.name, { create: true });
+      let dh = h;
+      for (const seg of it.name.split('/').slice(0, -1)) dh = await dh.getDirectoryHandle(seg, { create: true });
+      const fh = await dh.getFileHandle(it.name.slice(it.name.lastIndexOf('/') + 1), { create: true });
       const w = await fh.createWritable(); await w.write(it.md); await w.close();
     }
   } catch (err) { fsError(err, 'フォルダに書き出せませんでした'); return; }
@@ -2697,7 +2923,19 @@ async function importFromFolder() {
   let h;
   try { h = await window.showDirectoryPicker(); } catch (err) { fsError(err, 'フォルダを開けませんでした'); return; }
   const files = [];
-  try { for await (const [name, e] of h.entries()) if (e.kind === 'file' && (TEXT_EXT.test(name) || /\.zip$/i.test(name))) files.push(await e.getFile()); }
+  const walk = async (dir, prefix) => { // subfolders come in as folders here too
+    for await (const [name, e] of dir.entries()) {
+      const path = prefix ? prefix + '/' + name : name;
+      if (e.kind === 'directory') { if (!name.startsWith('.')) await walk(e, path); }
+      else if (TEXT_EXT.test(name) || /\.zip$/i.test(name)) {
+        const f = await e.getFile();
+        if (!prefix) { files.push(f); continue; } // at the top level the file can go straight through
+        const data = /\.zip$/i.test(name) ? await f.arrayBuffer() : await f.text();
+        files.push(new File([data], path, { type: f.type || 'text/markdown' })); // deeper down, the path carries the folder
+      }
+    }
+  };
+  try { await walk(h, ''); }
   catch (err) { fsError(err, 'フォルダを読めませんでした'); return; }
   if (!files.length) { toast('「' + h.name + '」に .md はありませんでした'); return; }
   await importFiles(files);
