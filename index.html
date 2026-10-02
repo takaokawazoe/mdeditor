@@ -1361,6 +1361,8 @@ acEl.addEventListener('mousedown', e => e.preventDefault()); // keep the caret i
 acEl.addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (b && ac) acPick(+b.dataset.i); });
 document.addEventListener('keydown', e => {
   if (!ac || e.isComposing) return;
+  // Shift+↑↓ などは文書側の操作。候補を閉じて、そのまま通す
+  if (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) { acClose(); return; }
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); ac.idx = (ac.idx + (e.key === 'ArrowDown' ? 1 : ac.items.length - 1)) % ac.items.length; acRender(); return; }
   if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); e.stopPropagation(); acPick(ac.idx); return; }
   if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); acClose(); }

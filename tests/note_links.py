@@ -73,7 +73,21 @@ async def main():
         check('the popup comes back', len(await pg.evaluate(AC)) > 0, True)
         await pg.keyboard.press('Escape'); await pg.wait_for_timeout(100)
         check('Esc closes it without inserting', await pg.evaluate("document.getElementById('ac').hidden"), True)
-        check('and the text is untouched', (await pg.evaluate(RAW)).endswith(' [[買い'), True)
+        check('and the text is untouched', any(r.endswith(' [[買い') for r in await pg.evaluate(RAWS)), True)
+        await idle()
+        # plain ↑↓ drive the list, but Shift+↑↓ belong to the text (in a note of its own)
+        await pg.click('#newNote'); await pg.wait_for_timeout(60)
+        await pg.keyboard.type('矢印の確認'); await pg.keyboard.press('Enter')
+        await pg.keyboard.type('二行目 [['); await pg.wait_for_timeout(150)
+        check('the popup is open again', await pg.evaluate("document.getElementById('ac').hidden"), False)
+        await pg.keyboard.press('ArrowUp'); await pg.wait_for_timeout(100)
+        check('a plain arrow stays in the list', await pg.evaluate("document.getElementById('ac').hidden"), False)
+        await pg.keyboard.press('Shift+ArrowUp'); await pg.wait_for_timeout(120)
+        check('Shift+↑ closes it and selects in the text', await pg.evaluate("document.getElementById('ac').hidden"), True)
+        # in the formatted view Shift+↑ starts a line selection, so either kind counts
+        check('and the text takes the key', await pg.evaluate("getSelection().toString().length > 0 || !!document.querySelector('#blocks .bsel')"), True)
+        await pg.keyboard.press('Escape'); await pg.wait_for_timeout(100)
+        await idle()
         await idle()
 
         # --- backlinks
