@@ -74,10 +74,25 @@ async def main():
         check('its notes move up', '# 隣のメモ@業務' in await pg.evaluate(FOLDERS), True)
         check('and it says what happened', 'に移しました' in await pg.inner_text('#toast'), True)
 
+        # --- folders you make here stop at three levels (start from the root)
+        await pg.click('#list .item .t:text-is("メモ帳へようこそ")'); await pg.wait_for_timeout(200)
+        await mkfolder('第1階層')
+        await mkfolder('第2階層')
+        await mkfolder('第3階層')
+        deep = [r for r in await pg.evaluate(ROWS) if '階層' in r]
+        check('three levels can be made', len(deep), 3)
+        await pg.click('#newFolder'); await pg.wait_for_timeout(200)
+        check('a fourth is refused', 'フォルダは3階層までです' in await pg.inner_text('#toast'), True)
+        check('and nothing was added', len([r for r in await pg.evaluate(ROWS) if '階層' in r or '新しいフォルダ' in r]), 3)
+        # dragging a folder somewhere too deep is refused as well
+        await drag(pg.locator('#list .folder:has-text("第1階層")'), pg.locator('#list .folder:has-text("第3階層")'))
+        check('a folder cannot be dragged past the limit', 'フォルダは3階層までです' in await pg.inner_text('#toast'), True)
+        check('the tree is unchanged', len([r for r in await pg.evaluate(ROWS) if '階層' in r]), 3)
+
         # illegal characters are dropped from the name
         await pg.click('#list .folder:has-text("業務") .fed'); await pg.wait_for_timeout(150)
         await pg.keyboard.press('Control+a'); await pg.keyboard.type('a/b:c*d'); await pg.keyboard.press('Enter'); await pg.wait_for_timeout(250)
-        check('the name is cleaned up', [r for r in await pg.evaluate(ROWS) if r.startswith('F')], ['F0 abcd2'])
+        check('the name is cleaned up', [r for r in await pg.evaluate(ROWS) if r.startswith('F')][0], 'F0 abcd2')
         await ctx.close()
 
         # --- the same tree on disk
@@ -102,8 +117,22 @@ async def main():
         await pg.click('#fs [data-act=reload]'); await pg.wait_for_timeout(900)
         check('an outside subfolder is picked up', '# 外から作ったメモ@外部' in await pg.evaluate(FOLDERS), True)
 
+        # --- folders made outside are taken as they are, however deep
+        await pg.evaluate("""(async () => { const r = await navigator.storage.getDirectory();
+          let d = await r.getDirectoryHandle('ftest');
+          for (const seg of ['A', 'B', 'C', 'D']) d = await d.getDirectoryHandle(seg, {create:true});
+          const fh = await d.getFileHandle('深いメモ.md', {create:true}); const w = await fh.createWritable();
+          await w.write('# 深いメモ\\n\\n外で作った'); await w.close(); })()""")
+        await pg.click('#fs [data-act=reload]'); await pg.wait_for_timeout(900)
+        check('a four-level note from disk comes in as it is', '# 深いメモ@A/B/C/D' in await pg.evaluate(FOLDERS), True)
+        await pg.click('#list .item:has-text("深いメモ") .open'); await pg.wait_for_timeout(200)
+        await pg.click('#blocks .block:nth-child(3)'); await pg.keyboard.press('End'); await pg.keyboard.type('！')
+        await pg.wait_for_timeout(1300)
+        check('editing it writes back to the same path', 'A/B/C/D/深いメモ.md' in await pg.evaluate(LS), True)
+
         # deleting the note removes the file and the folder it emptied
-        await pg.click('#list .item:has-text("議事録") .x'); await pg.wait_for_timeout(100)
+        await pg.click('#title'); await pg.wait_for_timeout(150)  # stop editing first
+        await pg.click('#list .item:has-text("議事録") .x'); await pg.wait_for_timeout(200)
         await pg.click('#list .item [data-act=del]'); await pg.wait_for_timeout(1200)
         files = await pg.evaluate(LS)
         check('the file is gone', [f for f in files if f.startswith('仕事/')], [])
