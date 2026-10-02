@@ -29,7 +29,7 @@ async def main():
             await pg.keyboard.type(text); await pg.wait_for_timeout(50)
 
         await pg.click('#settingsBtn'); await pg.wait_for_timeout(150)
-        check('every command is listed', await pg.evaluate("document.querySelectorAll('#keysList .krow').length"), 14)
+        check('every command is listed', await pg.evaluate("document.querySelectorAll('#keysList .krow').length"), 15)
         check('unbound commands show a dash', await shown('strike'), '—')
 
         # --- bind the three that ship with no key
@@ -79,6 +79,17 @@ async def main():
         await pg.keyboard.press('Control+Shift+K'); await pg.wait_for_timeout(50)
         check('pressing again takes the empty link back', await pg.evaluate(EDITING), '[二行目](https://例)')
 
+        # --- the checkbox command ships on Ctrl+1
+        await line('ふつうの行')
+        await pg.keyboard.press('Control+1'); await pg.wait_for_timeout(100)
+        check('Ctrl+1 makes a checkbox', await pg.evaluate(EDITING), '- [ ] ふつうの行')
+        await pg.keyboard.press('Control+1'); await pg.wait_for_timeout(100)
+        check('pressing it again takes it off', await pg.evaluate(EDITING), 'ふつうの行')
+        await pg.keyboard.press('Home'); await pg.keyboard.type('- '); await pg.wait_for_timeout(80)
+        await pg.keyboard.press('Control+1'); await pg.wait_for_timeout(100)
+        check('a bullet keeps its marker', await pg.evaluate(EDITING), '- [ ] ふつうの行')
+        await pg.keyboard.press('Control+1'); await pg.wait_for_timeout(100)
+
         # --- moving a key away from another command
         await pg.click('#settingsBtn'); await pg.wait_for_timeout(150)
         await bind('strike', 'Control+B')
@@ -88,7 +99,8 @@ async def main():
         check('pressing again moves it', await shown('strike'), 'Ctrl+B')
         check('the old owner loses it', await shown('bold'), '—')
         await pg.click('#sClose'); await pg.wait_for_timeout(100)
-        await pg.click('#blocks .block:nth-child(1)'); await pg.keyboard.press('Home')
+        await line('あいうえお')
+        await pg.keyboard.press('Home')
         for _ in range(2): await pg.keyboard.press('Shift+ArrowRight')
         await pg.keyboard.press('Control+b'); await pg.wait_for_timeout(50)
         check('Ctrl+B now strikes through', await pg.evaluate(EDITING), '~~あい~~うえお')
