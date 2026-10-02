@@ -29,7 +29,7 @@ async def main():
             await pg.keyboard.type(text); await pg.wait_for_timeout(50)
 
         await pg.click('#settingsBtn'); await pg.wait_for_timeout(150)
-        check('every command is listed', await pg.evaluate("document.querySelectorAll('#keysList .krow').length"), 15)
+        check('every command is listed', await pg.evaluate("document.querySelectorAll('#keysList .krow').length"), 17)
         check('unbound commands show a dash', await shown('strike'), '—')
 
         # --- bind the three that ship with no key
@@ -89,6 +89,19 @@ async def main():
         await pg.keyboard.press('Control+1'); await pg.wait_for_timeout(100)
         check('a bullet keeps its marker', await pg.evaluate(EDITING), '- [ ] ふつうの行')
         await pg.keyboard.press('Control+1'); await pg.wait_for_timeout(100)
+
+        # --- Ctrl+2 and Ctrl+3 are the two kinds of list
+        await line('リストにする行')
+        await pg.keyboard.press('Control+2'); await pg.wait_for_timeout(100)
+        check('Ctrl+2 makes a bullet', await pg.evaluate(EDITING), '- リストにする行')
+        await pg.keyboard.press('Control+3'); await pg.wait_for_timeout(100)
+        check('Ctrl+3 turns it into a numbered item', await pg.evaluate(EDITING), '1. リストにする行')
+        await pg.keyboard.press('Control+1'); await pg.wait_for_timeout(100)
+        check('Ctrl+1 turns that into a checkbox', await pg.evaluate(EDITING), '- [ ] リストにする行')
+        await pg.keyboard.press('Control+2'); await pg.wait_for_timeout(100)
+        check('Ctrl+2 drops the checkbox but keeps the bullet', await pg.evaluate(EDITING), '- リストにする行')
+        await pg.keyboard.press('Control+2'); await pg.wait_for_timeout(100)
+        check('pressing it again leaves a plain line', await pg.evaluate(EDITING), 'リストにする行')
 
         # --- moving a key away from another command
         await pg.click('#settingsBtn'); await pg.wait_for_timeout(150)
