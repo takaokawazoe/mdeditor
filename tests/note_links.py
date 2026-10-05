@@ -102,6 +102,30 @@ async def main():
         await idle()
         await idle()
 
+        # --- the list shows every match, scrolling rather than cutting off
+        await pg.click('#newNote'); await pg.wait_for_timeout(60)
+        for t in ['読書メモ', '旅行の計画', '家計簿', '献立メモ', '仕事のメモ', '勉強メモ', 'メモの種', '読みかけの本']:
+            await pg.click('#newNote'); await pg.wait_for_timeout(40); await set_md(pg, '# ' + t + '\n\n本文')
+        await pg.click('#newNote'); await pg.wait_for_timeout(60)
+        await pg.keyboard.type('候補の確認'); await pg.keyboard.press('Enter'); await pg.keyboard.type('[[')
+        await pg.wait_for_timeout(250)
+        items = await pg.evaluate(AC)
+        check('more than eight suggestions are listed', len(items) > 8, True)
+        box = await pg.evaluate("(() => { const b = document.querySelector('#acbox .items'); return { scrolls: b.scrollHeight > b.clientHeight, h: Math.round(b.clientHeight) }; })()")
+        check('the list scrolls instead of growing', box['scrolls'], True)
+        check('and keeps its height', box['h'], 232)
+        await pg.keyboard.type('読'); await pg.wait_for_timeout(200)
+        hits = await pg.evaluate(AC)
+        check('titles starting with the text come first', [t.startswith('読') for t in hits], sorted([t.startswith('読') for t in hits], reverse=True))
+        check('and the others are still there', any(not t.startswith('読') for t in hits) or len(hits) == 2, True)
+        await pg.keyboard.press('Backspace'); await pg.wait_for_timeout(200)
+        for _ in range(9): await pg.keyboard.press('ArrowDown')
+        await pg.wait_for_timeout(200)
+        check('moving down scrolls the highlighted one into view',
+              await pg.evaluate("(() => { const b = document.querySelector('#acbox .items'), on = b.querySelector('.it.on'); return on.offsetTop >= b.scrollTop && on.offsetTop + on.offsetHeight <= b.scrollTop + b.clientHeight + 1; })()"), True)
+        await pg.keyboard.press('Escape'); await pg.wait_for_timeout(100)
+        await idle()
+
         # --- backlinks
         BACK = "[...document.querySelectorAll('#backlinks a')].map(a=>a.textContent)"
         await pg.click('#list .item .t:text-is("今日の予定")'); await pg.wait_for_timeout(200)
