@@ -56,7 +56,7 @@ async def main():
         check('and still resolves', await pg.evaluate("!!document.querySelector('#blocks .nlink:not(.missing)')"))
 
         # --- typing [[ offers the other notes' titles
-        AC = "[...document.querySelectorAll('#ac .it')].map(b=>b.textContent)"
+        AC = "[...document.querySelectorAll('#acbox .it')].map(b=>b.textContent)"
         RAW = "document.querySelector('#blocks .editing')?._raw ?? null"
         await pg.click('#newNote'); await pg.wait_for_timeout(60)
         await pg.keyboard.type('つづきは [['); await pg.wait_for_timeout(150)
@@ -64,32 +64,40 @@ async def main():
         check('it leaves out the note being written', '無題のメモ' in await pg.evaluate(AC), False)
         await pg.keyboard.type('今日'); await pg.wait_for_timeout(150)
         check('typing filters the list', await pg.evaluate(AC), ['今日の予定'])
-        await pg.keyboard.press('Tab'); await pg.wait_for_timeout(150)
-        check('Tab puts the link in', await pg.evaluate(RAW), 'つづきは [[今日の予定]]')
-        check('the popup closes', await pg.evaluate("document.getElementById('ac').hidden"), True)
+        await pg.keyboard.press('Enter'); await pg.wait_for_timeout(150)
+        check('Enter puts the link in', await pg.evaluate(RAW), 'つづきは [[今日の予定]]')
+        check('the popup closes', await pg.evaluate("document.getElementById('acbox').hidden"), True)
         await pg.keyboard.type(' を見る'); await pg.wait_for_timeout(100)
         check('typing carries on after it', await pg.evaluate(RAW), 'つづきは [[今日の予定]] を見る')
         await pg.keyboard.type(' [[買い'); await pg.wait_for_timeout(150)
         check('the popup comes back', len(await pg.evaluate(AC)) > 0, True)
         await pg.keyboard.press('Escape'); await pg.wait_for_timeout(100)
-        check('Esc closes it without inserting', await pg.evaluate("document.getElementById('ac').hidden"), True)
+        check('Esc closes it without inserting', await pg.evaluate("document.getElementById('acbox').hidden"), True)
         check('and the text is untouched', any(r.endswith(' [[買い') for r in await pg.evaluate(RAWS)), True)
         await idle()
-        # the arrows always move the caret: the list never takes them (in a note of its own)
+        # while the list is open it owns ↑↓, and the caret stays where it is
         LINE = "[...document.querySelectorAll('#blocks .block')].findIndex(b=>b.classList.contains('editing'))"
+        CARET = """(() => { const el = document.querySelector('#blocks .editing'); const s = getSelection();
+          if (!el || !s.rangeCount) return -1; const r = s.getRangeAt(0);
+          const pre = document.createRange(); pre.selectNodeContents(el); pre.setEnd(r.startContainer, r.startOffset);
+          return pre.toString().length; })()"""
+        ON = "document.querySelector('#acbox .it.on')?.textContent"
         await pg.click('#newNote'); await pg.wait_for_timeout(60)
         await pg.keyboard.type('矢印の確認'); await pg.keyboard.press('Enter')
         await pg.keyboard.type('二行目'); await pg.keyboard.press('Enter')
         await pg.keyboard.type('三行目 [['); await pg.wait_for_timeout(150)
-        check('the popup is open again', await pg.evaluate("document.getElementById('ac').hidden"), False)
-        was = await pg.evaluate(LINE)
-        await pg.keyboard.press('ArrowUp'); await pg.wait_for_timeout(150)
-        check('↑ moves the caret, not the list', await pg.evaluate(LINE), was - 1)
-        check('and the list closes', await pg.evaluate("document.getElementById('ac').hidden"), True)
-        await pg.keyboard.press('ArrowDown'); await pg.wait_for_timeout(150)
-        check('↓ moves it back', await pg.evaluate(LINE), was)
-        await pg.keyboard.press('Shift+ArrowUp'); await pg.wait_for_timeout(120)
-        check('Shift+↑ works on the text as usual', await pg.evaluate("getSelection().toString().length > 0 || !!document.querySelector('#blocks .bsel')"), True)
+        check('the popup is open again', await pg.evaluate("document.getElementById('acbox').hidden"), False)
+        line0, off0, first = await pg.evaluate(LINE), await pg.evaluate(CARET), await pg.evaluate(ON)
+        await pg.keyboard.press('ArrowDown'); await pg.wait_for_timeout(200)
+        check('↓ picks the next suggestion', await pg.evaluate(ON) != first, True)
+        check('the caret stays on its line', await pg.evaluate(LINE), line0)
+        check('and at the same spot', await pg.evaluate(CARET), off0)
+        await pg.keyboard.press('ArrowUp'); await pg.wait_for_timeout(200)
+        check('↑ goes back to the first one', await pg.evaluate(ON), first)
+        check('the caret has still not moved', [await pg.evaluate(LINE), await pg.evaluate(CARET)], [line0, off0])
+        await pg.keyboard.press('Shift+ArrowUp'); await pg.wait_for_timeout(150)
+        check('Shift+↑ closes the list and works on the text', await pg.evaluate("document.getElementById('acbox').hidden"), True)
+        check('and the text takes the key', await pg.evaluate("getSelection().toString().length > 0 || !!document.querySelector('#blocks .bsel')"), True)
         await pg.keyboard.press('Escape'); await pg.wait_for_timeout(100)
         await idle()
         await idle()
