@@ -17,7 +17,7 @@ async def main():
         pg.on("pageerror", lambda e: errors.append('pageerror: ' + str(e)) or print("PAGEERROR", e))
         await pg.goto("file://" + os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "index.html"))); await pg.wait_for_timeout(300)
         await pg.click('[data-choice=browser]')
-        await pg.click('#toggleSrc'); await pg.wait_for_timeout(100)  # selecting by character across lines lives in the raw view
+        await pg.click('#viewBtn'); await pg.click('#toggleSrc'); await pg.wait_for_timeout(100)  # selecting by character across lines lives in the raw view
         async def note(lines):
             await pg.click('#newNote'); await pg.wait_for_timeout(50)
             for i, l in enumerate(lines):

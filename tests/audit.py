@@ -82,11 +82,11 @@ async def main():
         await pg.set_input_files('#fileInput', ['/tmp/a.md']); await pg.wait_for_timeout(300)
         check('import while editing', await pg.evaluate("document.getElementById('title').textContent") == '買い物')
         # --- 12. raw view: every line shows its Markdown, and find still works there
-        await pg.click('#toggleSrc'); await pg.wait_for_timeout(60)
+        await pg.click('#viewBtn'); await pg.click('#toggleSrc'); await pg.wait_for_timeout(60)
         check('raw view shows the markdown of every line', await pg.evaluate("[...document.querySelectorAll('#blocks .block')].every(el => el.textContent === el._raw)"))
         await pg.keyboard.press('Control+f'); await pg.wait_for_timeout(40)
         check('find works in the raw view', not await pg.evaluate("document.getElementById('findbar').hidden"))
-        await pg.keyboard.press('Escape'); await pg.click('#toggleSrc'); await pg.wait_for_timeout(60)
+        await pg.keyboard.press('Escape'); await pg.click('#viewBtn'); await pg.click('#toggleSrc'); await pg.wait_for_timeout(60)
         check('back to the formatted view', await pg.evaluate("!!document.querySelector('#blocks .b-li, #blocks .b-h1, #blocks .b-p')"))
         # --- 13. undo/redo button states
         st = await pg.evaluate("[document.getElementById('undo').disabled, document.getElementById('redo').disabled]")
