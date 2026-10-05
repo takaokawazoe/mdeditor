@@ -129,6 +129,12 @@ body.bselecting,body.bselecting *{user-select:none;-webkit-user-select:none}
 .ac .it{display:block;width:100%;text-align:left;padding:6px 9px;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
 .ac .it.on{background:var(--accent-soft);color:var(--accent)}
 .ac .hint{padding:3px 9px 4px;font-size:11px;color:var(--ink-2)}
+.ctx{min-width:200px}
+.ctx .it{white-space:nowrap}
+.ctx .it:disabled{opacity:.4}
+.ctx .it.danger{color:var(--danger)}
+.rowmenu{display:none;position:absolute;right:4px;top:6px;width:22px;height:22px;border-radius:5px;color:var(--ink-2);font-size:15px;line-height:20px;text-align:center}
+.folder .rowmenu{position:static;flex:none}
 .backlinks{margin:36px auto 0;max-width:44rem;padding-top:12px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--ink-2)}
 .backlinks[hidden]{display:none}
 .backlinks h2{margin:0 0 6px;font-size:12px;font-weight:600;color:var(--ink-2)}
@@ -291,6 +297,8 @@ body.dragging .drop{display:flex}
   .fmenu{display:flex;position:static;min-width:0;padding:0;border:0;box-shadow:none;background:none}
   .fmenu .btn{padding:10px 12px}
   .more .mobileOnly{display:block}
+  .rowmenu{display:block}
+  .item .x,.folder .fx,.folder .fed{display:none}
   .more{max-width:calc(100vw - 20px)}
   .fwrap{display:block;border-bottom:1px solid var(--rule);margin-bottom:5px;padding-bottom:5px}
   body.side-hidden .side{display:flex}
@@ -375,6 +383,7 @@ body.dragging .drop{display:flex}
       <div class="blocks" id="blocks" tabindex="0"></div>
       <div class="backlinks" id="backlinks" hidden></div>
       <div class="ac" id="acbox" hidden></div>
+<div class="ac ctx" id="ctxmenu" hidden></div>
     </div>
   </main>
 </div>
@@ -438,8 +447,8 @@ const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','
 const PLACEHOLDER = 'ここに書き始めましょう';
 const KEY = 'wysimd.v1';
 
-const MANUAL = "# メモ帳の使い方\n\nこのメモはロックされています。編集したいときは右上の鍵をクリックして解除してください。削除されても、左上の「？」からいつでも入れ直せます。\n\n## 画面の見方\n\n| 場所 | 内容 |\n| --- | --- |\n| サイドバー | メモの一覧（並びは自由に入れ替え可）。上に「すべてのメモを検索」、下に保存先 |\n| 上部バー | ＜ ＞（サイドバーを隠す／表示。スマホは☰）、現在のメモのタイトル、↶ ↷（元に戻す／やり直す）、鍵（ロック）、検索、ファイル、表示 |\n| 編集エリア | 行をクリックすると、その行だけ元のMarkdownが現れて編集できる |\n\n左上の「＜」かCtrl/⌘+`\\`でサイドバーを隠せます。隠すとボタンが「＞」に変わり、押すと戻ります（隠した状態は次に開いたときも続きます）。スマホなど画面が狭いときは「☰」でサイドバーを開閉し、上部バーの操作は「…」にまとまります。\n\n## 基本の書き方\n\n| 書きたいもの | 書き方 | 補足 |\n| --- | --- | --- |\n| 見出し | `# 見出し`（`#`は1〜6個） | 最初の行がメモのタイトルになる |\n| 箇条書き | `- 項目` | Enterで次の項目。空の項目でEnterすると抜ける |\n| 番号付き | `1. 項目` | 番号は表示時に1から振り直す。`1.` だけで書いてもよい |\n| チェックボックス | `- [ ] やること` | 四角をクリックで切り替え |\n| 太字 | `**文字**` | Ctrl/⌘+B |\n| 斜体 | `*文字*` | Ctrl/⌘+I |\n| コード | `` `文字` `` | Ctrl/⌘+E |\n| 取り消し線 | `~~文字~~` |  |\n| リンク | `[文字](https://…)` | Ctrl/⌘を押しながらクリックで開く |\n| 引用 | `> 文章` |  |\n| コードブロック | ```` ``` ```` で囲む | 中ではEnterが改行。閉じの ```` ``` ```` の行末でEnterで抜ける |\n| 区切り線 | `---` |  |\n\n- Ctrl/⌘+1：チェックボックス（`- [ ] `）、Ctrl/⌘+2：箇条書き（`- `）、Ctrl/⌘+3：番号付き（`1. `）。同じキーをもう一度押すと外れ、別のキーを押すとその形に変わります（箇条書き→番号付き、など）。行を選んでいればまとめて切り替わります\n- これらはブラウザのタブ切り替えと重なることがあります。効かないときは設定（⚙）→「キーボード」で別のキーに変えてください\n- Ctrl/⌘+B（太字）・I（斜体）・E（コード）は切り替えです。文字を選んでから押すとその部分を囲み、もう一度押すと囲みが外れます。何も選ばずに押すと記号だけが入り、そのまま打てます\n- 箇条書きの中でTab：字下げ。Shift+Tabで戻す。番号付きは字下げすると `1.` から\n- Shift+Enter：同じ行の中で改行\n- 行頭でBackspace：前の行とつなぐ\n- Esc：編集をやめる。そのあとEnterで同じ場所に戻ります。↑↓←→を押すと、カーソルがそのまま動いたように上下の行や前後の文字へ入ります（マウスは要りません）\n\n## 表の書き方\n\n`| 名前 | 点数` と書いてEnterを押すと、行末の `|` と区切り行 `| --- | --- |` が自動で入り、次の行が `| ` で始まります。あとはセルを `|` で区切りながら書き、Enterで次の行へ。行頭に `|` だけの状態でEnterを押すと表を抜けます。\n\n- Tab／Shift+Tab：次／前のセルへ。最後のセルでTabするとセルを追加\n- 編集を終えると縦線が揃うよう自動で整形\n- 区切り行を `:---` `:---:` `---:` にすると左寄せ・中央・右寄せ\n- セルの中に `|` を書くときは `\\|`\n\n## 検索と置換\n\n**このメモ内**：上部の「検索」か Ctrl/⌘+F。Ctrl/⌘+H で置換欄も開きます（バー内の「置換」でも切り替え）。\n\n- Aa：大文字と小文字を区別、.*：正規表現\n- Enter／↓で次、Shift+Enter／↑で前。該当する行は薄く色が付き、いま見ている一致はその行の元のMarkdownの中で反転\n- Esc：閉じて、その一致箇所を選択した状態で編集に入る\n- 置換：1件ずつ（置換後は次へ進む）。すべて置換：一括。Undoで戻せる。正規表現なら `$1` で捕捉した文字を使える\n\n**すべてのメモ**：サイドバー上の検索欄（Ctrl/⌘+Shift+F）。該当するメモだけが件数と抜粋つきで並びます。3件まで表示し、「さらに表示」で残りを開きます。クリックするとそのメモが開き、同じ検索語がメモ内検索に引き継がれます。\n\n## 行の選択\n\n編集中の行でShift+↓（行末側）／Shift+↑（行頭側）を押すと、行単位の選択が始まります。続けてShift+↑↓で範囲を伸ばしたり縮めたりできます。\n\n- Ctrl/⌘+C：選択した行のMarkdownをコピー\n- Ctrl/⌘+X、Backspace、Delete：選択した行を削除\n- Ctrl/⌘+V：選択した行をクリップボードの内容で置き換え（複数行なら1行ずつのブロックになります）\n- Tab／Shift+Tab、Alt+Shift+→／←：選択した行をまとめて字下げ／戻す\n- Alt+Shift+↑／↓：選択した行をまとめて上下に移動\n- 文字を打つ、Enter：選択行を消してその場で入力を始める\n- Esc、矢印キー、クリック：選択を解除\n- Ctrl/⌘+A：メモの全行を選択（そのままCtrl/⌘+Cで全体をコピー）\n\n行の途中から別の行の途中まで、という文字単位の選択はできません。\n\n## メモどうしをつなぐ\n\n`[[メモのタイトル]]` と書くと、そのメモへのリンクになります。\n\n- `[[` と打つと、ほかのメモのタイトルが候補に出ます。**該当するものはすべて並び**、多いときは枠の中をスクロールします\n- 続けて文字を打つと絞り込まれ、**打った文字で始まるタイトルが上**に来ます。↑↓で選んでEnter（またはTab）で入ります。クリックでも選べます\n- Escで閉じます。Shift+↑↓など修飾キーと一緒に押したときは、候補を閉じて文書側の操作になります\n- **Ctrl/⌘+クリック**（スマホはタップ）でそのメモへ移動します。普通のクリックは今までどおりその行の編集です\n- そのタイトルのメモがまだ無いときは点線で表示され、押しても何も起きません。あとでそのタイトルのメモを作れば、自動でつながります\n- リンク先のタイトル（1行目）を変えると、**そのメモを指していたリンクを自動で書き換えます**。何件直したかはトーストで出ます\n- 同じタイトルのメモが複数あるときは、一覧で上のものを開き、その旨を知らせます\n- `` `[[文字]]` `` のようにコードで囲んだものはリンクになりません\n- そのメモを参照しているメモがあれば、本文の下に一覧が出ます。クリックするとそのメモへ移動します\n- リンクで移動したあとは、**Alt+←**で元のメモに戻れます。**Alt+→**で進み直せます（上部バーの「表示」メニューからも選べます）。戻ると、そのメモで最後にいた行に合わせます。リンクだけでなく、一覧やバックリンクから開いた分も同じようにたどれます。履歴は50件まで覚え、アプリを閉じると消えます\n- フォルダ保存している .md にもそのまま `[[タイトル]]` と書かれるので、ほかのMarkdownアプリでも読めます\n\n## フォルダで整理する\n\nメモはフォルダに入れて整理できます。ファイルの整理と同じ考え方で、1つのメモはどこか1つのフォルダに入ります。\n\n- **作る**：サイドバー上の「＋ フォルダ」。名前をその場で入力します（Escでやめる）。直前に選んでいたフォルダの中に作られます\n- **入れる**：一覧のメモをフォルダへドラッグします。フォルダ自体をドラッグすれば、中身ごと move できます。スマホは長押しして動かします\n- **開け閉め**：フォルダ名をクリック。右の数字はその中のメモの数（下の階層も含む）。開け閉めの状態は次に開いたときも続きます\n- **名前を変える**：フォルダにマウスを乗せて「✎」。中のメモも一緒についてきます\n- **削除**：「×」→「削除する」。**中のメモは消えず、1つ上の階層へ移ります**\n- 新しいメモは、最後に選んだフォルダに入ります\n- **このアプリで作れるフォルダは3階層まで**です（例：`仕事/2026/10月`）。それ以上を作ろうとすると「フォルダは3階層までです」と出ます\n- フォルダ名に `/ \\ : * ? \" < > |` は使えないので、入力しても取り除かれます\n\n**フォルダ保存しているとき**は、画面のフォルダがそのままパソコンのフォルダになります。メモを移すとファイルも移動し、空になったフォルダは片付けます。エクスプローラ側でサブフォルダを作って .md を置けば、そのフォルダのメモとして取り込みます。`.zip` の控えにもフォルダの形がそのまま入ります。\n\nパソコン側に4階層以上のフォルダがあっても、**そのまま読み込んで同じ場所に書き戻します**（勝手にファイルを動かすことはしません）。3階層の制限は、このアプリで新しく作る・移動するときだけに効きます。フォルダ名とタイトルが長すぎてパスが収まらないメモは、**フォルダには保存せず**その旨を知らせます（メモはブラウザに残ります）。\n\n## メモの管理とロック\n\n- 新しいメモ：「＋ 新しいメモ」（一覧の先頭に入ります）\n- 並べ替え：一覧の項目をドラッグして好きな位置へ。スマホでは項目を長押しして持ち上げてから指を動かす（端まで運ぶと一覧がスクロール）。更新しても並びは変わりません\n- 削除：一覧の項目にマウスを乗せて「×」→「削除する」\n- ロック：上部の鍵をクリック。ロック中は本文を編集・削除できません。閲覧・検索・コピー・.md保存はできます。もう一度クリックで解除\n- 元に戻す／やり直す：↶ ↷、Ctrl/⌘+Z、Ctrl/⌘+Shift+Z（Ctrl+Y）。履歴はメモごと\n- Markdownを表示：メモ全体を生のMarkdownとして表示・編集\n- ？：この使い方を開く（削除されていれば入れ直す）\n\n## ファイルの読み込みと書き出し\n\n上部バーの「ファイル」（スマホは「…」）にまとまっています。1ファイル＝1メモです。\n\n見た目の切り替えは隣の「表示」メニューです（前のメモへ戻る／次のメモへ進む／Markdownを表示）。\n\n| メニュー | すること |\n| --- | --- |\n| 指定したファイルを開く | 選んだ.md／.txt／.eml／.msg（複数可）をメモとして追加 |\n| .zip内のすべての.mdを開く | .zipの中の.mdをすべてメモとして追加（書き出した控えを戻すとき） |\n| フォルダ内のすべての.mdを開く | 選んだフォルダの.mdをすべて一度だけ読み込む（Chrome/Edge） |\n| このファイルを.mdで保存 | 表示中のメモを.mdファイルとしてダウンロード |\n| すべてのファイルを保存 → フォルダへ書き出し | 選んだフォルダに全メモを `タイトル.md` として一度だけ書き出す（Chrome/Edge） |\n| すべてのファイルを保存 → .zipで保存 | 全メモを1つの.zipにまとめる。スマホでは共有シートが開くので、ファイルアプリやクラウドにそのまま送れる |\n\n- .mdや.txt、.eml、.msg、.zipを画面にドラッグして落としても追加できます\n- **メールも読めます**（`.eml` と Outlook の `.msg`）。件名がタイトル、続けて差出人・宛先・日時、その下が本文になります。本文はプレーンな文面を優先し、HTMLしかないメールはタグを外した文章にします。引用（`>`）はそのまま引用として表示されます。添付ファイルは取り込まず、名前だけ末尾に並べます\n- `.msg` で本文がRTF形式しか入っていない場合は取り出せません（その旨を本文に書きます）。暗号化・署名付きのメールも中身は読めません\n- すでに同じ内容のメモがあるファイルは飛ばします。控えを読み直しても二重になりません\n- フォルダへの書き出し・読み込みは一回きりで、そのフォルダを保存先にはしません\n- スマホの「…」には「すべてをコピー」もあり、表示中のメモのMarkdownをまるごとクリップボードへ送れます\n\n## 保存先\n\n最初に開いたとき（Chrome/Edgeでパソコンに置いたHTMLを開いた場合）に、保存先を選ぶ画面が出ます。\n\n- ブラウザに保存：このブラウザの中に保存。ファイルは作らない。最後の変更から0.4秒後に自動保存\n- フォルダに保存：選んだフォルダに各メモを `タイトル.md` として保存。最後の変更から0.7秒後に書き戻し。最初の行を変えるとファイル名も追従、削除するとファイルも消える。フォルダに他のエディタで.mdを追加すると「再読み込み」で取り込む\n\nいまの保存先はサイドバー下に「ブラウザ（ローカルストレージ）」または「ローカルPC（フォルダ名）」と出ています。「保存先の切り替え」で変えられます。\n\n- ブラウザ → ローカルPC：フォルダを選ぶと、いまのメモをそのフォルダに書き出し、フォルダにある.mdも読み込みます\n- ローカルPC → ブラウザ：「切り替える」を押すと、以後はブラウザに保存します。メモはブラウザに残り、フォルダの.mdも消えません\n\nブラウザを開き直したときなどにフォルダへの許可が切れていると、再接続を促す画面が出ます。「接続する」で保存を再開します。「あとで」を選ぶとサイドバー下に「未接続」と出て、接続するまで変更はブラウザにだけ残ります（接続したときにフォルダへ反映します）。\n\nフォルダ保存はChrome/Edge限定で、Claude上の公開版・Firefox・Safari・スマホでは「保存先の切り替え」は出ません。ブラウザの閲覧データを消すとブラウザ内のメモは消えるので、大事なものはフォルダ保存か、「ファイル」→「すべてのファイルを保存」で控えを。\n\n**フォルダ保存中に食い違ったとき**：ブラウザ側と.mdファイルの両方が変わっていたら、更新が新しいほうを残し、負けたほうを「○○（ブラウザ側の写し）」「○○（フォルダ側の写し）」という別のメモにします。どちらの内容も消えません。\n\n## 配色を変える\n\n左上の「⚙」→「配色」で、見た目の色を変えられます（このブラウザにだけ保存されます）。\n\n- **外観**：OSに合わせる／明るい／暗い。「OSに合わせる」なら、OSの設定が変わると自動で切り替わります\n- **配色**：既定・セピア・グレー・高コントラストから選べます\n- **9色の指定**：背景・紙・文字・薄い文字・罫線・アクセント・薄いアクセント・コードの背景・警告を、色見本をクリックして個別に決められます。明るい外観と暗い外観の色は別々に覚えるので、いま表示している側の色を編集します\n- 各色の「既定」でその色だけ戻り、右上の「色を既定に戻す」で外観・配色・個別の色がすべて戻ります\n- 配色を選び直すと、個別に変えた色は戻ります\n\n## ショートカットキーの変更\n\n左上の「⚙」→「キーボード」で、ショートカットキーを変えられます（このブラウザにだけ保存されます）。\n\n| 操作 | 場面 | 既定 |\n| --- | --- | --- |\n| このメモ内を検索／置換／すべてのメモを検索 | いつでも | Ctrl/⌘+F／+H／+Shift+F |\n| 元に戻す／やり直す | いつでも | Ctrl/⌘+Z／+Shift+Z |\n| サイドバーの表示 | いつでも | Ctrl/⌘+`\\` |\n| 前のメモへ戻る／次のメモへ進む | いつでも | Alt+←／Alt+→ |\n| 保存 | いつでも | Ctrl/⌘+S |\n| 全行を選択 | いつでも | Ctrl/⌘+A |\n| 太字／斜体／コード | 編集中 | Ctrl/⌘+B／+I／+E |\n| チェックボックス | 編集中・行選択中 | Ctrl/⌘+1 |\n| 箇条書き | 編集中・行選択中 | Ctrl/⌘+2 |\n| 番号付き | 編集中・行選択中 | Ctrl/⌘+3 |\n| 取り消し線 | 編集中 | （なし） |\n| 引用の付け外し | 編集中・行選択中 | （なし） |\n| リンクの挿入 | 編集中 | （なし） |\n\n- 「変更」を押してから、割り当てたいキーを押します。Escでやめられます\n- 「なし」で割り当てを消せます。「既定」でその行だけ元に戻り、右上の「すべて既定に戻す」で全部戻ります\n- すでに使われているキーを押すと、その場では変わりません。もう一度同じキーを押すと、そちらへ移ります\n- Enter・Tab・Esc・Backspace・矢印キーは本文の操作に使うので割り当てられません。修飾キー（Ctrl/⌘・Alt・Shift）との組み合わせだけが使えます\n- Ctrl+TやCtrl+Wなど、ブラウザが先に使うキーは効かないことがあります\n- 取り消し線・引用・リンクは、キーを割り当てると使えるようになります。リンクは、文字を選んでいれば `[選んだ文字]()` にしてURLの位置にカーソルが入り、選んでいなければ `[]()` を入れて文字の位置から書き始められます（続けてもう一度押すと取り消せます）\n- 画面が狭いときは、この設定は表示されません\n\n## 困ったときは\n\n- 書式が効かない：`#` や `-` のあとに半角スペースが必要です\n- 表にならない：見出し行の次に `| --- | --- |` の区切り行が必要です。`|` や `-` が全角になっていないか確認してください\n- 「保存先の切り替え」が出ない：ChromeかEdgeで、パソコンに置いたHTMLを直接開いているか確認してください\n- フォントが違って見える：オフラインではWebフォントが読めず、端末の標準フォントで表示されます";
-const MANUAL_VER = 23;
+const MANUAL = "# メモ帳の使い方\n\nこのメモはロックされています。編集したいときは右上の鍵をクリックして解除してください。削除されても、左上の「？」からいつでも入れ直せます。\n\n## 画面の見方\n\n| 場所 | 内容 |\n| --- | --- |\n| サイドバー | メモの一覧（並びは自由に入れ替え可）。上に「すべてのメモを検索」、下に保存先 |\n| 上部バー | ＜ ＞（サイドバーを隠す／表示。スマホは☰）、現在のメモのタイトル、↶ ↷（元に戻す／やり直す）、鍵（ロック）、検索、ファイル、表示 |\n| 編集エリア | 行をクリックすると、その行だけ元のMarkdownが現れて編集できる |\n\n左上の「＜」かCtrl/⌘+`\\`でサイドバーを隠せます。隠すとボタンが「＞」に変わり、押すと戻ります（隠した状態は次に開いたときも続きます）。スマホなど画面が狭いときは「☰」でサイドバーを開閉し、上部バーの操作は「…」にまとまります。\n\n## 基本の書き方\n\n| 書きたいもの | 書き方 | 補足 |\n| --- | --- | --- |\n| 見出し | `# 見出し`（`#`は1〜6個） | 最初の行がメモのタイトルになる |\n| 箇条書き | `- 項目` | Enterで次の項目。空の項目でEnterすると抜ける |\n| 番号付き | `1. 項目` | 番号は表示時に1から振り直す。`1.` だけで書いてもよい |\n| チェックボックス | `- [ ] やること` | 四角をクリックで切り替え |\n| 太字 | `**文字**` | Ctrl/⌘+B |\n| 斜体 | `*文字*` | Ctrl/⌘+I |\n| コード | `` `文字` `` | Ctrl/⌘+E |\n| 取り消し線 | `~~文字~~` |  |\n| リンク | `[文字](https://…)` | Ctrl/⌘を押しながらクリックで開く |\n| 引用 | `> 文章` |  |\n| コードブロック | ```` ``` ```` で囲む | 中ではEnterが改行。閉じの ```` ``` ```` の行末でEnterで抜ける |\n| 区切り線 | `---` |  |\n\n- 「Markdownを表示」「新しいメモ」「ロック／解除」には既定のキーがありません。使いたい場合は設定（⚙）→「キーボード」で割り当ててください\n- Ctrl/⌘+1：チェックボックス（`- [ ] `）、Ctrl/⌘+2：箇条書き（`- `）、Ctrl/⌘+3：番号付き（`1. `）。同じキーをもう一度押すと外れ、別のキーを押すとその形に変わります（箇条書き→番号付き、など）。行を選んでいればまとめて切り替わります\n- これらはブラウザのタブ切り替えと重なることがあります。効かないときは設定（⚙）→「キーボード」で別のキーに変えてください\n- Ctrl/⌘+B（太字）・I（斜体）・E（コード）は切り替えです。文字を選んでから押すとその部分を囲み、もう一度押すと囲みが外れます。何も選ばずに押すと記号だけが入り、そのまま打てます\n- 箇条書きの中でTab：字下げ。Shift+Tabで戻す。番号付きは字下げすると `1.` から\n- Shift+Enter：同じ行の中で改行\n- 行頭でBackspace：前の行とつなぐ\n- Esc：編集をやめる。そのあとEnterで同じ場所に戻ります。↑↓←→を押すと、カーソルがそのまま動いたように上下の行や前後の文字へ入ります（マウスは要りません）\n\n## 表の書き方\n\n`| 名前 | 点数` と書いてEnterを押すと、行末の `|` と区切り行 `| --- | --- |` が自動で入り、次の行が `| ` で始まります。あとはセルを `|` で区切りながら書き、Enterで次の行へ。行頭に `|` だけの状態でEnterを押すと表を抜けます。\n\n- Tab／Shift+Tab：次／前のセルへ。最後のセルでTabするとセルを追加\n- 編集を終えると縦線が揃うよう自動で整形\n- 区切り行を `:---` `:---:` `---:` にすると左寄せ・中央・右寄せ\n- セルの中に `|` を書くときは `\\|`\n\n## 検索と置換\n\n**このメモ内**：上部の「検索」か Ctrl/⌘+F。Ctrl/⌘+H で置換欄も開きます（バー内の「置換」でも切り替え）。\n\n- Aa：大文字と小文字を区別、.*：正規表現\n- Enter／↓で次、Shift+Enter／↑で前。該当する行は薄く色が付き、いま見ている一致はその行の元のMarkdownの中で反転\n- Esc：閉じて、その一致箇所を選択した状態で編集に入る\n- 置換：1件ずつ（置換後は次へ進む）。すべて置換：一括。Undoで戻せる。正規表現なら `$1` で捕捉した文字を使える\n\n**すべてのメモ**：サイドバー上の検索欄（Ctrl/⌘+Shift+F）。該当するメモだけが件数と抜粋つきで並びます。3件まで表示し、「さらに表示」で残りを開きます。クリックするとそのメモが開き、同じ検索語がメモ内検索に引き継がれます。\n\n## 行の選択\n\n編集中の行でShift+↓（行末側）／Shift+↑（行頭側）を押すと、行単位の選択が始まります。続けてShift+↑↓で範囲を伸ばしたり縮めたりできます。\n\n- Ctrl/⌘+C：選択した行のMarkdownをコピー\n- Ctrl/⌘+X、Backspace、Delete：選択した行を削除\n- Ctrl/⌘+V：選択した行をクリップボードの内容で置き換え（複数行なら1行ずつのブロックになります）\n- Tab／Shift+Tab、Alt+Shift+→／←：選択した行をまとめて字下げ／戻す\n- Alt+Shift+↑／↓：選択した行をまとめて上下に移動\n- 文字を打つ、Enter：選択行を消してその場で入力を始める\n- Esc、矢印キー、クリック：選択を解除\n- Ctrl/⌘+A：メモの全行を選択（そのままCtrl/⌘+Cで全体をコピー）\n\n行の途中から別の行の途中まで、という文字単位の選択はできません。\n\n## メモどうしをつなぐ\n\n`[[メモのタイトル]]` と書くと、そのメモへのリンクになります。\n\n- `[[` と打つと、ほかのメモのタイトルが候補に出ます。**該当するものはすべて並び**、多いときは枠の中をスクロールします\n- 続けて文字を打つと絞り込まれ、**打った文字で始まるタイトルが上**に来ます。↑↓で選んでEnter（またはTab）で入ります。クリックでも選べます\n- Escで閉じます。Shift+↑↓など修飾キーと一緒に押したときは、候補を閉じて文書側の操作になります\n- **Ctrl/⌘+クリック**（スマホはタップ）でそのメモへ移動します。普通のクリックは今までどおりその行の編集です\n- そのタイトルのメモがまだ無いときは点線で表示され、押しても何も起きません。あとでそのタイトルのメモを作れば、自動でつながります\n- リンク先のタイトル（1行目）を変えると、**そのメモを指していたリンクを自動で書き換えます**。何件直したかはトーストで出ます\n- 同じタイトルのメモが複数あるときは、一覧で上のものを開き、その旨を知らせます\n- `` `[[文字]]` `` のようにコードで囲んだものはリンクになりません\n- そのメモを参照しているメモがあれば、本文の下に一覧が出ます。クリックするとそのメモへ移動します\n- リンクで移動したあとは、**Alt+←**で元のメモに戻れます。**Alt+→**で進み直せます（上部バーの「表示」メニューからも選べます）。戻ると、そのメモで最後にいた行に合わせます。リンクだけでなく、一覧やバックリンクから開いた分も同じようにたどれます。履歴は50件まで覚え、アプリを閉じると消えます\n- フォルダ保存している .md にもそのまま `[[タイトル]]` と書かれるので、ほかのMarkdownアプリでも読めます\n\n## フォルダで整理する\n\nメモはフォルダに入れて整理できます。ファイルの整理と同じ考え方で、1つのメモはどこか1つのフォルダに入ります。\n\n- **作る**：サイドバー上の「＋ フォルダ」。名前をその場で入力します（Escでやめる）。直前に選んでいたフォルダの中に作られます\n- **入れる**：一覧のメモをフォルダへドラッグします。フォルダ自体をドラッグすれば、中身ごと move できます。スマホは長押しして動かします\n- **開け閉め**：フォルダ名をクリック。右の数字はその中のメモの数（下の階層も含む）。開け閉めの状態は次に開いたときも続きます\n- **名前を変える**：フォルダにマウスを乗せて「✎」。中のメモも一緒についてきます\n- **削除**：「×」→「削除する」。**中のメモは消えず、1つ上の階層へ移ります**\n- 新しいメモは、最後に選んだフォルダに入ります\n- **このアプリで作れるフォルダは3階層まで**です（例：`仕事/2026/10月`）。それ以上を作ろうとすると「フォルダは3階層までです」と出ます\n- フォルダ名に `/ \\ : * ? \" < > |` は使えないので、入力しても取り除かれます\n\n**フォルダ保存しているとき**は、画面のフォルダがそのままパソコンのフォルダになります。メモを移すとファイルも移動し、空になったフォルダは片付けます。エクスプローラ側でサブフォルダを作って .md を置けば、そのフォルダのメモとして取り込みます。`.zip` の控えにもフォルダの形がそのまま入ります。\n\nパソコン側に4階層以上のフォルダがあっても、**そのまま読み込んで同じ場所に書き戻します**（勝手にファイルを動かすことはしません）。3階層の制限は、このアプリで新しく作る・移動するときだけに効きます。フォルダ名とタイトルが長すぎてパスが収まらないメモは、**フォルダには保存せず**その旨を知らせます（メモはブラウザに残ります）。\n\n## メモの管理とロック\n\n- 新しいメモ：「＋ 新しいメモ」（一覧の先頭に入ります）\n- 並べ替え：一覧の項目をドラッグして好きな位置へ。スマホでは項目を長押しして持ち上げてから指を動かす（端まで運ぶと一覧がスクロール）。更新しても並びは変わりません\n- 削除：一覧の項目にマウスを乗せて「×」→「削除する」\n- **一覧を右クリック**すると、その場でできることが出ます。メモの上なら「開く／ロック／.mdで保存／複製／削除」、フォルダの上なら「ここに新しいメモ／ここに新しいフォルダ／名前を変える／下の階層をすべて開く・閉じる／削除」、何もない所なら「新しいメモ／新しいフォルダ／すべてのフォルダを閉じる」。↑↓で選んでEnter、Escで閉じます\n- スマホでは各行の右の「…」から同じメニューが開きます\n- ロック：上部の鍵をクリック。ロック中は本文を編集・削除できません。閲覧・検索・コピー・.md保存はできます。もう一度クリックで解除\n- 元に戻す／やり直す：↶ ↷、Ctrl/⌘+Z、Ctrl/⌘+Shift+Z（Ctrl+Y）。履歴はメモごと\n- Markdownを表示：メモ全体を生のMarkdownとして表示・編集\n- ？：この使い方を開く（削除されていれば入れ直す）\n\n## ファイルの読み込みと書き出し\n\n上部バーの「ファイル」（スマホは「…」）にまとまっています。1ファイル＝1メモです。\n\n見た目の切り替えは隣の「表示」メニューです（前のメモへ戻る／次のメモへ進む／Markdownを表示）。\n\n| メニュー | すること |\n| --- | --- |\n| 指定したファイルを開く | 選んだ.md／.txt／.eml／.msg（複数可）をメモとして追加 |\n| .zip内のすべての.mdを開く | .zipの中の.mdをすべてメモとして追加（書き出した控えを戻すとき） |\n| フォルダ内のすべての.mdを開く | 選んだフォルダの.mdをすべて一度だけ読み込む（Chrome/Edge） |\n| このファイルを.mdで保存 | 表示中のメモを.mdファイルとしてダウンロード |\n| すべてのファイルを保存 → フォルダへ書き出し | 選んだフォルダに全メモを `タイトル.md` として一度だけ書き出す（Chrome/Edge） |\n| すべてのファイルを保存 → .zipで保存 | 全メモを1つの.zipにまとめる。スマホでは共有シートが開くので、ファイルアプリやクラウドにそのまま送れる |\n\n- .mdや.txt、.eml、.msg、.zipを画面にドラッグして落としても追加できます\n- **メールも読めます**（`.eml` と Outlook の `.msg`）。件名がタイトル、続けて差出人・宛先・日時、その下が本文になります。本文はプレーンな文面を優先し、HTMLしかないメールはタグを外した文章にします。引用（`>`）はそのまま引用として表示されます。添付ファイルは取り込まず、名前だけ末尾に並べます\n- `.msg` で本文がRTF形式しか入っていない場合は取り出せません（その旨を本文に書きます）。暗号化・署名付きのメールも中身は読めません\n- すでに同じ内容のメモがあるファイルは飛ばします。控えを読み直しても二重になりません\n- フォルダへの書き出し・読み込みは一回きりで、そのフォルダを保存先にはしません\n- スマホの「…」には「すべてをコピー」もあり、表示中のメモのMarkdownをまるごとクリップボードへ送れます\n\n## 保存先\n\n最初に開いたとき（Chrome/Edgeでパソコンに置いたHTMLを開いた場合）に、保存先を選ぶ画面が出ます。\n\n- ブラウザに保存：このブラウザの中に保存。ファイルは作らない。最後の変更から0.4秒後に自動保存\n- フォルダに保存：選んだフォルダに各メモを `タイトル.md` として保存。最後の変更から0.7秒後に書き戻し。最初の行を変えるとファイル名も追従、削除するとファイルも消える。フォルダに他のエディタで.mdを追加すると「再読み込み」で取り込む\n\nいまの保存先はサイドバー下に「ブラウザ（ローカルストレージ）」または「ローカルPC（フォルダ名）」と出ています。「保存先の切り替え」で変えられます。\n\n- ブラウザ → ローカルPC：フォルダを選ぶと、いまのメモをそのフォルダに書き出し、フォルダにある.mdも読み込みます\n- ローカルPC → ブラウザ：「切り替える」を押すと、以後はブラウザに保存します。メモはブラウザに残り、フォルダの.mdも消えません\n\nブラウザを開き直したときなどにフォルダへの許可が切れていると、再接続を促す画面が出ます。「接続する」で保存を再開します。「あとで」を選ぶとサイドバー下に「未接続」と出て、接続するまで変更はブラウザにだけ残ります（接続したときにフォルダへ反映します）。\n\nフォルダ保存はChrome/Edge限定で、Claude上の公開版・Firefox・Safari・スマホでは「保存先の切り替え」は出ません。ブラウザの閲覧データを消すとブラウザ内のメモは消えるので、大事なものはフォルダ保存か、「ファイル」→「すべてのファイルを保存」で控えを。\n\n**フォルダ保存中に食い違ったとき**：ブラウザ側と.mdファイルの両方が変わっていたら、更新が新しいほうを残し、負けたほうを「○○（ブラウザ側の写し）」「○○（フォルダ側の写し）」という別のメモにします。どちらの内容も消えません。\n\n## 配色を変える\n\n左上の「⚙」→「配色」で、見た目の色を変えられます（このブラウザにだけ保存されます）。\n\n- **外観**：OSに合わせる／明るい／暗い。「OSに合わせる」なら、OSの設定が変わると自動で切り替わります\n- **配色**：既定・セピア・グレー・高コントラストから選べます\n- **9色の指定**：背景・紙・文字・薄い文字・罫線・アクセント・薄いアクセント・コードの背景・警告を、色見本をクリックして個別に決められます。明るい外観と暗い外観の色は別々に覚えるので、いま表示している側の色を編集します\n- 各色の「既定」でその色だけ戻り、右上の「色を既定に戻す」で外観・配色・個別の色がすべて戻ります\n- 配色を選び直すと、個別に変えた色は戻ります\n\n## ショートカットキーの変更\n\n左上の「⚙」→「キーボード」で、ショートカットキーを変えられます（このブラウザにだけ保存されます）。\n\n| 操作 | 場面 | 既定 |\n| --- | --- | --- |\n| このメモ内を検索／置換／すべてのメモを検索 | いつでも | Ctrl/⌘+F／+H／+Shift+F |\n| 元に戻す／やり直す | いつでも | Ctrl/⌘+Z／+Shift+Z |\n| サイドバーの表示 | いつでも | Ctrl/⌘+`\\` |\n| 前のメモへ戻る／次のメモへ進む | いつでも | Alt+←／Alt+→ |\n| 保存 | いつでも | Ctrl/⌘+S |\n| 全行を選択 | いつでも | Ctrl/⌘+A |\n| 太字／斜体／コード | 編集中 | Ctrl/⌘+B／+I／+E |\n| チェックボックス | 編集中・行選択中 | Ctrl/⌘+1 |\n| 箇条書き | 編集中・行選択中 | Ctrl/⌘+2 |\n| 番号付き | 編集中・行選択中 | Ctrl/⌘+3 |\n| 取り消し線 | 編集中 | （なし） |\n| 引用の付け外し | 編集中・行選択中 | （なし） |\n| リンクの挿入 | 編集中 | （なし） |\n| Markdownを表示／戻す | いつでも | （なし） |\n| 新しいメモ | いつでも | （なし） |\n| ロック／解除 | いつでも | （なし） |\n\n- 「変更」を押してから、割り当てたいキーを押します。Escでやめられます\n- 「なし」で割り当てを消せます。「既定」でその行だけ元に戻り、右上の「すべて既定に戻す」で全部戻ります\n- すでに使われているキーを押すと、その場では変わりません。もう一度同じキーを押すと、そちらへ移ります\n- Enter・Tab・Esc・Backspace・矢印キーは本文の操作に使うので割り当てられません。修飾キー（Ctrl/⌘・Alt・Shift）との組み合わせだけが使えます\n- Ctrl+TやCtrl+Wなど、ブラウザが先に使うキーは効かないことがあります\n- 取り消し線・引用・リンクは、キーを割り当てると使えるようになります。リンクは、文字を選んでいれば `[選んだ文字]()` にしてURLの位置にカーソルが入り、選んでいなければ `[]()` を入れて文字の位置から書き始められます（続けてもう一度押すと取り消せます）\n- 画面が狭いときは、この設定は表示されません\n\n## 困ったときは\n\n- 書式が効かない：`#` や `-` のあとに半角スペースが必要です\n- 表にならない：見出し行の次に `| --- | --- |` の区切り行が必要です。`|` や `-` が全角になっていないか確認してください\n- 「保存先の切り替え」が出ない：ChromeかEdgeで、パソコンに置いたHTMLを直接開いているか確認してください\n- フォントが違って見える：オフラインではWebフォントが読めず、端末の標準フォントで表示されます";
+const MANUAL_VER = 24;
 const SAMPLE = [
   '# メモ帳へようこそ',
   '',
@@ -820,6 +829,9 @@ const CMDS = [
   { id: 'bullet', label: '箇条書き', scope: 'lines', def: 'Ctrl+2' },
   { id: 'number', label: '番号付き', scope: 'lines', def: 'Ctrl+3' },
   { id: 'link', label: 'リンクの挿入', scope: 'edit', def: '' },
+  { id: 'rawView', label: 'Markdownを表示／戻す', scope: 'any', def: '' },
+  { id: 'newNote', label: '新しいメモ', scope: 'any', def: '' },
+  { id: 'lock', label: 'ロック／解除', scope: 'any', def: '' },
 ];
 const cmdById = id => CMDS.find(c => c.id === id);
 const keyOf = id => { const c = cmdById(id); const k = settings.keys && settings.keys[id]; return k === undefined ? c.def : k; };
@@ -857,6 +869,9 @@ document.addEventListener('keydown', e => {
   if (cmd === 'findAll') { e.preventDefault(); if (document.body.classList.contains('side-hidden')) toggleSide(); sideEl.classList.add('open'); backdrop.classList.add('show'); gq.focus(); gq.select(); return; }
   // "select every line" with no line open (while editing, the blocks handler takes it)
   if (cmd === 'selectAll' && !editingEl && !bsel && (e.target === document.body || $('#editor').contains(e.target)) && !document.querySelector('.modal:not([hidden])')) { e.preventDefault(); bselStart(0, nBlocks() - 1); return; }
+  if (cmd === 'rawView') { e.preventDefault(); $('#toggleSrc').click(); return; }
+  if (cmd === 'newNote') { e.preventDefault(); $('#newNote').click(); return; }
+  if (cmd === 'lock') { e.preventDefault(); $('#lockBtn').click(); return; }
   if (cmd === 'find' || cmd === 'replace') { e.preventDefault(); openFind(cmd === 'replace'); return; }
   if (cmd === 'undo') { e.preventDefault(); undo(); }
   else if (cmd === 'redo') { e.preventDefault(); redo(); }
@@ -2004,7 +2019,8 @@ function renderList() {
     } else {
       row.innerHTML = '<span class="tw">' + (folderOpen(path) ? '▾' : '▸') + '</span><span class="fname">' + esc(baseOf(path)) + '</span>'
         + '<span class="fn">' + deepCount(path) + '</span>'
-        + '<button class="fed" aria-label="フォルダ名を変える">✎</button><button class="fx" aria-label="このフォルダを削除">×</button>';
+        + '<button class="fed" aria-label="フォルダ名を変える">✎</button><button class="fx" aria-label="このフォルダを削除">×</button>'
+        + '<button class="rowmenu" aria-label="このフォルダの操作">…</button>';
     }
     listEl.append(row);
     if (!folderOpen(path) || confirmFolder === path) return;
@@ -2020,7 +2036,7 @@ function renderList() {
       item.classList.add('confirm');
       item.innerHTML = '<span class="t">このメモを削除しますか？元に戻せません。</span><span class="acts"><button class="btn danger" data-act="del">削除する</button><button class="btn" data-act="cancel">やめる</button></span>';
     } else {
-      item.innerHTML = '<button class="open"><span class="t">' + (n.locked ? '<span class="lk">🔒</span>' : '') + esc(noteTitle(n)) + '</span><span class="d">' + fmtDate(n.updated) + '</span></button>' + (n.locked ? '' : '<button class="x" aria-label="このメモを削除">×</button>');
+      item.innerHTML = '<button class="open"><span class="t">' + (n.locked ? '<span class="lk">🔒</span>' : '') + esc(noteTitle(n)) + '</span><span class="d">' + fmtDate(n.updated) + '</span></button>' + (n.locked ? '' : '<button class="x" aria-label="このメモを削除">×</button>') + '<button class="rowmenu" aria-label="このメモの操作">…</button>';
     }
     listEl.append(item);
   };
@@ -2081,6 +2097,81 @@ listEl.addEventListener('click', e => {
     }
   }
 });
+/* ---------- the list's own menu (right click, or 「…」 on a touch screen) ---------- */
+const ctxEl = $('#ctxmenu');
+let ctxItems = null, ctxIdx = 0;
+function ctxClose() { if (!ctxItems) return; ctxItems = null; ctxEl.hidden = true; ctxEl.innerHTML = ''; }
+function ctxRender() {
+  ctxEl.innerHTML = ctxItems.map((it, i) => '<button class="it' + (i === ctxIdx ? ' on' : '') + (it.danger ? ' danger' : '') + '"'
+    + (it.disabled ? ' disabled' : '') + ' data-i="' + i + '">' + esc(it.label) + '</button>').join('');
+  ctxEl.hidden = false;
+}
+function ctxOpen(x, y, items) {
+  if (!items.length) return;
+  ctxItems = items; ctxIdx = Math.max(0, items.findIndex(it => !it.disabled));
+  ctxRender();
+  const box = ctxEl.getBoundingClientRect();
+  ctxEl.style.left = Math.max(8, Math.min(x, innerWidth - box.width - 8)) + 'px';
+  ctxEl.style.top = Math.max(8, Math.min(y, innerHeight - box.height - 8)) + 'px';
+}
+function ctxRun(i) {
+  const it = ctxItems && ctxItems[i];
+  ctxClose();
+  if (it && !it.disabled) it.run();
+}
+// what the menu offers depends on what was clicked
+function ctxItemsFor(row) {
+  if (!row) return [
+    { label: '新しいメモ', run: () => $('#newNote').click() },
+    { label: '新しいフォルダ', run: () => $('#newFolder').click() },
+    { label: 'すべてのフォルダを閉じる', run: () => { for (const p of folderPaths()) setFolderOpen(p, false); renderList(); } },
+  ];
+  if (row.classList.contains('folder')) {
+    const path = row.dataset.path, deep = folderPaths().some(p => p.startsWith(path + '/'));
+    return [
+      { label: 'ここに新しいメモ', run: () => { activeFolder = path; setFolderOpen(path, true); $('#newNote').click(); } },
+      { label: 'ここに新しいフォルダ', disabled: depthOf(path) >= MAX_DEPTH, run: () => { activeFolder = path; $('#newFolder').click(); } },
+      { label: '名前を変える', run: () => startRename(path) },
+      { label: folderOpen(path) ? '下の階層をすべて閉じる' : '下の階層をすべて開く', disabled: !deep,
+        run: () => { const open = !folderOpen(path); for (const p of folderPaths()) if (p === path || p.startsWith(path + '/')) setFolderOpen(p, open); renderList(); } },
+      { label: 'フォルダを削除', danger: true, run: () => { confirmFolder = path; renderList(); } },
+    ];
+  }
+  const n = notes.find(x => x.id === row.dataset.id);
+  if (!n) return [];
+  return [
+    { label: '開く', run: () => { openNote(n.id); closeSide(); } },
+    { label: n.locked ? 'ロックを解除' : 'ロックする', run: () => toggleLock(n) },
+    { label: '.mdで保存', run: () => downloadNote(n) },
+    { label: 'このメモを複製', disabled: !!n.locked, run: () => duplicateNote(n) },
+    { label: '削除', danger: true, disabled: !!n.locked, run: () => { confirmId = n.id; renderList(); } },
+  ];
+}
+listEl.addEventListener('contextmenu', e => {
+  if (gsearch.q) return; // the search list is not the tree
+  e.preventDefault();
+  ctxOpen(e.clientX, e.clientY, ctxItemsFor(e.target.closest('.item,.folder')));
+});
+listEl.addEventListener('click', e => { // 「…」 on touch screens opens the same menu
+  const b = e.target.closest('.rowmenu'); if (!b) return;
+  e.stopPropagation();
+  const r = b.getBoundingClientRect();
+  ctxOpen(r.left, r.bottom + 4, ctxItemsFor(b.closest('.item,.folder')));
+}, true);
+ctxEl.addEventListener('mousedown', e => e.preventDefault());
+ctxEl.addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (b) ctxRun(+b.dataset.i); });
+document.addEventListener('mousedown', e => { if (!ctxEl.contains(e.target)) ctxClose(); });
+window.addEventListener('keydown', e => {
+  if (!ctxItems) return;
+  const k = e.key;
+  if (k !== 'ArrowDown' && k !== 'ArrowUp' && k !== 'Enter' && k !== 'Escape') return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  if (k === 'Escape') return ctxClose();
+  if (k === 'Enter') return ctxRun(ctxIdx);
+  const step = k === 'ArrowDown' ? 1 : ctxItems.length - 1;
+  for (let i = 0; i < ctxItems.length; i++) { ctxIdx = (ctxIdx + step) % ctxItems.length; if (!ctxItems[ctxIdx].disabled) break; }
+  ctxRender();
+}, true);
 let dragId = null, dragFolder = null, dropTarget = null;
 function dndClear() { for (const el of listEl.querySelectorAll('.drop-before,.drop-after,.drop-into,.dragging')) el.classList.remove('drop-before', 'drop-after', 'drop-into', 'dragging'); dropTarget = null; }
 function dndMark(row, y) {
@@ -2420,13 +2511,14 @@ function renderLock() {
   document.body.classList.toggle('locked', l);
   const b = $('#lockBtn'); b.textContent = l ? '🔒 ロック中' : '🔓'; b.classList.toggle('locked', l); b.title = l ? 'ロックを解除' : 'このメモをロック（編集・削除できなくなる）';
 }
-$('#lockBtn').addEventListener('click', () => {
-  const n = cur(); if (!n) return;
+function toggleLock(n) {
+  if (!n) return;
   n.locked = !n.locked;
-  if (n.locked) { if (editingEl) leaveEdit(editingEl); if (bsel) { bsel = null; bselRender(); } }
+  if (n.locked && n.id === currentId) { if (editingEl) leaveEdit(editingEl); if (bsel) { bsel = null; bselRender(); } }
   renderLock(); renderList(); persist();
   toast(n.locked ? 'ロックしました' : 'ロックを解除しました');
-});
+}
+$('#lockBtn').addEventListener('click', () => toggleLock(cur()));
 $('#helpBtn').addEventListener('click', () => {
   let m = notes.find(x => x.manual);
   if (!m) { m = newNote(MANUAL); m.manual = true; m.locked = true; m.manualVer = MANUAL_VER; notes.push(m); toast('使い方のメモを追加しました'); }
@@ -2446,9 +2538,9 @@ $('#copy').addEventListener('click', async () => {
   }
 });
 const IN_CLAUDE = !!(window.claude && typeof window.claude.use === 'function');
-$('#download').addEventListener('click', async () => {
+async function downloadNote(n) {
   if (editingEl) leaveEdit(editingEl);
-  const filename = noteTitle(cur()).replace(/[\\/:*?"<>|]/g, '_') + '.md', md = currentMd();
+  const filename = noteTitle(n).replace(/[\\/:*?"<>|]/g, '_') + '.md', md = n.blocks.join('\n');
   if (downloads) {
     try { await downloads.save({ filename, data: md }); toast('保存しました'); }
     catch (err) { if (err && err.code !== 'declined') toast('保存できませんでした'); }
@@ -2461,7 +2553,17 @@ $('#download').addEventListener('click', async () => {
     setTimeout(() => URL.revokeObjectURL(url), 2000);
     toast('「' + filename + '」をダウンロードしました');
   } catch (e) { toast('保存できませんでした'); }
-});
+}
+$('#download').addEventListener('click', () => downloadNote(cur()));
+function duplicateNote(src) {
+  const n = newNote(src.blocks.join('\n'), folderOf(src));
+  n.order = (src.order ?? 0) + 0.5; // right after the one it came from
+  notes.push(n);
+  navPush(n.id); currentId = n.id; confirmId = null;
+  sortedNotes().forEach((x, i) => { x.order = i; });
+  fsMark(n.id); renderNote(); renderList(); persist(); closeSide();
+  toast('「' + noteTitle(n) + '」として複製しました');
+}
 if (IN_CLAUDE) window.claude.use('downloads').then(d => { if (d) downloads = d; }).catch(() => {});
 
 /* ---------- import files ---------- */

@@ -11,7 +11,7 @@ LS = """(async () => { const out = [];
   const r = await navigator.storage.getDirectory();
   await walk(await r.getDirectoryHandle('ftest', {create:true}), '');
   return out.sort(); })()"""
-ROWS = """[...document.querySelectorAll('#list > *')].map(e => (e.classList.contains('folder') ? 'F' : '.') + (e.style.getPropertyValue('--d') || '0') + ' ' + e.textContent.replace(/[×▾▸✎]/g, '').trim())"""
+ROWS = """[...document.querySelectorAll('#list > *')].map(e => (e.classList.contains('folder') ? 'F' : '.') + (e.style.getPropertyValue('--d') || '0') + ' ' + e.textContent.replace(/[×▾▸✎…]/g, '').trim())"""
 FOLDERS = "JSON.parse(localStorage.getItem('wysimd.v1')).notes.map(n => (n.blocks[0] || '') + '@' + (n.folder || '-'))"
 errors = []
 def check(label, got, want=True):

@@ -29,7 +29,7 @@ async def main():
             await pg.keyboard.type(text); await pg.wait_for_timeout(50)
 
         await pg.click('#settingsBtn'); await pg.wait_for_timeout(150)
-        check("every command is listed", await pg.evaluate("document.querySelectorAll('#keysList .krow').length"), 19)
+        check("every command is listed", await pg.evaluate("document.querySelectorAll('#keysList .krow').length"), 22)
         check('unbound commands show a dash', await shown('strike'), '—')
 
         # --- bind the three that ship with no key
