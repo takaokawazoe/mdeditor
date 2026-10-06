@@ -137,6 +137,22 @@ async def main():
         await pg.click('#list .item .t:text-is("買い物リスト2026")'); await pg.wait_for_timeout(200)
         check('a linked note lists its referrer', await pg.evaluate(BACK), ['今日の予定'])
 
+        # --- a title with brackets in it works like any other
+        await note('# [AI] 画像生成\n\n本文')
+        await note('# かっこの確認\n\n[[[AI] 画像生成]] を見る\n[[未作成の [X] メモ]] はこれから')
+        await idle()
+        check('a bracketed title becomes a link', await pg.evaluate("[...document.querySelectorAll('#blocks .nlink')].map(a=>a.textContent)"), ['[AI] 画像生成', '未作成の [X] メモ'])
+        check('the missing one is still marked', await pg.evaluate("document.querySelector('#blocks .nlink.missing')?.textContent"), '未作成の [X] メモ')
+        await pg.keyboard.down('Control'); await pg.click('#blocks .nlink'); await pg.keyboard.up('Control'); await pg.wait_for_timeout(250)
+        check('Ctrl+click follows it', await pg.evaluate(TITLE), '[AI] 画像生成')
+        check('and it is listed as a referrer', await pg.evaluate("[...document.querySelectorAll('#backlinks a')].map(a=>a.textContent)"), ['かっこの確認'])
+        await pg.click('#blocks .block:nth-child(1)'); await pg.keyboard.press('End'); await pg.keyboard.type('2026')
+        await idle()
+        await pg.click('#list .item .t:text-is("かっこの確認")'); await pg.wait_for_timeout(250)
+        check('renaming repoints it', (await pg.evaluate(RAWS))[2], '[[[AI] 画像生成2026]] を見る')
+        await pg.click('#blocks .block:nth-child(3)'); await pg.keyboard.press('End'); await pg.keyboard.press('Escape')
+        await idle()
+
         # links inside code are left alone
         await note('`[[買い物リスト2026]]` はリンクにしない')
         await idle()
