@@ -32,3 +32,15 @@ def eml_attach():
             "--B2\r\nContent-Type: application/pdf; name=\"=?UTF-8?B?" + base64.b64encode('資料.pdf'.encode()).decode() + "?=\"\r\n"
             "Content-Disposition: attachment; filename=\"=?UTF-8?B?" + base64.b64encode('資料.pdf'.encode()).decode() + "?=\"\r\n"
             "Content-Transfer-Encoding: base64\r\n\r\nJVBERi0=\r\n--B2--\r\n")
+def eml_wrong_charset():  # the header lies: a Shift_JIS body declared as UTF-8
+    return ("Subject: =?UTF-8?B?" + base64.b64encode('嘘のcharset'.encode()).decode() + "?=\r\n"
+            "Content-Type: text/plain; charset=UTF-8\r\n"
+            "Content-Transfer-Encoding: base64\r\n\r\n"
+            + base64.b64encode('本文はShift_JISです。'.encode('cp932')).decode() + "\r\n")
+def eml_no_charset():  # no charset at all, and the body is not UTF-8 either
+    return ("Subject: no charset\r\n"
+            "Content-Transfer-Encoding: base64\r\n\r\n"
+            + base64.b64encode('charsetが無い本文です。'.encode('cp932')).decode() + "\r\n")
+def eml_raw_subject():  # the subject is not =?..?= encoded, the bytes are just there (UTF-8)
+    return ("Subject: " + '生のUTF-8の件名' + "\r\n"
+            "Content-Type: text/plain; charset=UTF-8\r\n\r\n生の本文です。\r\n")

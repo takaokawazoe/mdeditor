@@ -2571,14 +2571,29 @@ const TEXT_EXT = /\.(md|markdown|mdown|txt|text)$/i;
 const isTextFile = f => TEXT_EXT.test(f.name) || /^text\//.test(f.type);
 const isZipFile = f => /\.zip$/i.test(f.name) || f.type === 'application/zip';
 function decodeBytes(buf) {
-  try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
-  catch (e) { return new TextDecoder('shift_jis').decode(buf); }
+  const u = new Uint8Array(buf);
+  // Windows writes "Unicode" text as UTF-16, which would come out as every other byte being a NUL
+  if (u[0] === 0xff && u[1] === 0xfe) return new TextDecoder('utf-16le').decode(u.subarray(2));
+  if (u[0] === 0xfe && u[1] === 0xff) return new TextDecoder('utf-16be').decode(u.subarray(2));
+  const head = u.subarray(0, 512); // no byte order mark: plain text holds no NUL, so one side being full of them tells us
+  let even = 0, odd = 0;
+  for (let i = 0; i < head.length; i++) if (!head[i]) { if (i % 2) odd++; else even++; }
+  if (odd > head.length / 8 && !even) return new TextDecoder('utf-16le').decode(u);
+  if (even > head.length / 8 && !odd) return new TextDecoder('utf-16be').decode(u);
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(u); }
+  catch (e) { return new TextDecoder('shift_jis').decode(u); }
 }
 async function decodeFile(f) { return decodeBytes(await f.arrayBuffer()); }
 /* ---------- .eml (mail) ---------- */
 // A mail file is plain RFC 822 text, so it can be read here: headers, MIME parts,
 // base64 / quoted-printable, and whatever charset the sender used.
 const isEmlFile = f => /\.eml$/i.test(f.name) || f.type === 'message/rfc822';
+// a .eml saved as UTF-16 is still RFC 822 underneath: bring it back to one byte per character
+const mailBytes = buf => {
+  const u = new Uint8Array(buf);
+  const u16 = (u[0] === 0xff && u[1] === 0xfe) || (u[0] === 0xfe && u[1] === 0xff);
+  return u16 ? new TextEncoder().encode(decodeBytes(u)) : u;
+};
 const bytesOf = str => { const u = new Uint8Array(str.length); for (let i = 0; i < str.length; i++) u[i] = str.charCodeAt(i) & 0xff; return u; };
 // one byte -> one character, so charset decoding can be done per MIME part later.
 // TextDecoder('iso-8859-1') is windows-1252 by spec and would mangle 0x80-0x9F, so do it by hand
@@ -2587,7 +2602,14 @@ function byteString(buf) {
   for (let i = 0; i < u.length; i += CH) out += String.fromCharCode.apply(null, u.subarray(i, i + CH));
   return out;
 }
+// A mail does not always tell the truth about its own encoding: Outlook leaves the codepage
+// out of some .msg files and declares 65001 for bodies that are really Shift_JIS. So decode
+// strictly and take the first candidate that comes out clean, UTF-8 first because it checks
+// itself. An ESC byte means iso-2022-jp, which is 7-bit and would pass as UTF-8 escapes and all.
 function decodeCharset(bytes, charset) {
+  const strict = c => { try { return new TextDecoder(c, { fatal: true }).decode(bytes); } catch (e) { return null; } };
+  const order = bytes.includes(0x1b) ? [charset, 'iso-2022-jp'] : ['utf-8', charset, 'shift_jis', 'windows-1252'];
+  for (const c of order) { const s = c && strict(c); if (s != null) return s; }
   try { return new TextDecoder(charset || 'utf-8').decode(bytes); }
   catch (e) { return decodeBytes(bytes); }
 }
@@ -2602,9 +2624,15 @@ function qpBytes(s) {
   }
   return new Uint8Array(out);
 }
+// a header is meant to be ASCII with =?..?= around anything else; some mail just puts the bytes in
+const raw8 = s => { // keep the source plain ASCII: walk the code units instead of a high-range regex
+  let hi = false;
+  for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); if (c > 0xff) return s; if (c > 0x7f) hi = true; }
+  return hi ? decodeCharset(bytesOf(s), '') : s;
+};
 // =?UTF-8?B?...?= in subjects and addresses
-const decodeWords = v => v.replace(/=\?([\w-]+)\?([BbQq])\?([^?]*)\?=(\s*(?==\?))?/g, (m, cs, enc, data) =>
-  decodeCharset(enc.toUpperCase() === 'B' ? b64Bytes(data) : qpBytes(data.replace(/_/g, ' ')), cs));
+const decodeWords = v => raw8(v.replace(/=\?([\w-]+)\?([BbQq])\?([^?]*)\?=(\s*(?==\?))?/g, (m, cs, enc, data) =>
+  decodeCharset(enc.toUpperCase() === 'B' ? b64Bytes(data) : qpBytes(data.replace(/_/g, ' ')), cs)));
 function emlHeaders(head) {
   const h = {};
   for (const line of head.replace(/\r?\n[ \t]+/g, ' ').split(/\r?\n/)) {
@@ -2771,7 +2799,7 @@ async function collectImports(fileList) {
       catch (err) { console.error(err); badZip++; }
     } else if (isEmlFile(f) || isMsgFile(f)) {
       const base = f.name.replace(/\.[^.]+$/, ''), raw = await f.arrayBuffer();
-      const md = isMsgFile(f) ? msgToMarkdown(raw, base) : emlToMarkdown(byteString(raw), base);
+      const md = isMsgFile(f) ? msgToMarkdown(raw, base) : emlToMarkdown(byteString(mailBytes(raw)), base);
       if (md) files.push(new File([md], base + '.md', { type: 'text/markdown' }));
       else badMail++; // not a mail file after all
     } else if (isTextFile(f)) files.push(f);

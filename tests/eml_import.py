@@ -1,6 +1,6 @@
 import asyncio, os, tempfile
 from playwright.async_api import async_playwright
-from mkeml import eml_plain, eml_jis, eml_multipart, eml_html_only, eml_attach
+from mkeml import eml_plain, eml_jis, eml_multipart, eml_html_only, eml_attach, eml_wrong_charset, eml_no_charset, eml_raw_subject
 # dropping a .eml adds the mail as a note: subject as the title, then sender/date, then the body
 errors = []
 def check(label, got, want=True):
@@ -13,7 +13,9 @@ async def main():
     tmp = tempfile.mkdtemp()
     paths = {}
     for name, maker, enc in [('plain', eml_plain, 'utf-8'), ('jis', eml_jis, 'ascii'), ('multi', eml_multipart, 'utf-8'),
-                             ('html', eml_html_only, 'utf-8'), ('attach', eml_attach, 'utf-8')]:
+                             ('html', eml_html_only, 'utf-8'), ('attach', eml_attach, 'utf-8'),
+                             ('wrongcs', eml_wrong_charset, 'ascii'), ('nocs', eml_no_charset, 'ascii'),
+                             ('rawsubj', eml_raw_subject, 'utf-8')]:
         p = os.path.join(tmp, name + '.eml')
         open(p, 'w', encoding=enc, newline='').write(maker())
         paths[name] = p
@@ -41,6 +43,16 @@ async def main():
 
         md = await open_eml('multi')
         check('multipart prefers the plain part', 'プレーンの本文' in md and 'HTMLの本文' not in md, True)
+
+        # the header is not always right about the body's encoding
+        md = await open_eml('wrongcs')
+        check('Shift_JIS body declared as UTF-8', '本文はShift_JISです。' in md, True)
+
+        md = await open_eml('nocs')
+        check('Shift_JIS body with no charset', 'charsetが無い本文です。' in md, True)
+
+        md = await open_eml('rawsubj')
+        check('a subject with raw UTF-8 bytes', md.splitlines()[0], '# 生のUTF-8の件名')
 
         md = await open_eml('html')
         check('html-only mail is stripped to text', '見出し' in md and '1行目' in md and '2行目' in md, True)

@@ -36,6 +36,28 @@ def cp932_msg():
         P('1000', '001E', '本文もShift_JISです'.encode('cp932')),
         ('__properties_version1.0', mkmsg.props_stream([(0x3FDE0003, 932)])),
     ])
+def nocp_msg():  # Outlook leaves the codepage out of some .msg files: the bytes still have to be read
+    return mkmsg.build([
+        P('0037', '001E', 'codepageなしの件名'.encode('cp932')),
+        P('1000', '001E', '本文もShift_JISです'.encode('cp932')),
+    ])
+def lying_cp_msg():  # ... and sometimes it says 65001 for a body that is really Shift_JIS
+    return mkmsg.build([
+        P('0037', '001E', '嘘のcodepageの件名'.encode('cp932')),
+        P('1000', '001E', '本文もShift_JISです'.encode('cp932')),
+        ('__properties_version1.0', mkmsg.props_stream([(0x3FDE0003, 65001)])),
+    ])
+def utf8_as_932_msg():  # the other way round: UTF-8 bytes under a 932 codepage
+    return mkmsg.build([
+        P('0037', '001E', 'UTF-8の件名'.encode('utf-8')),
+        P('1000', '001E', '本文はUTF-8です'.encode('utf-8')),
+        ('__properties_version1.0', mkmsg.props_stream([(0x3FDE0003, 932)])),
+    ])
+def html_nocp_msg():  # an HTML-only body in Shift_JIS, again with no codepage
+    return mkmsg.build([
+        P('0037', '001F', U('HTMLだけでcodepageなし')),
+        P('1013', '0102', '<html><body><p>HTML本文です</p></body></html>'.encode('cp932')),
+    ])
 def rtf_only_msg():
     return mkmsg.build([P('0037', '001F', U('RTFだけ')), P('1009', '0102', b'\x00' * 40)])
 def attach_msg():
@@ -46,6 +68,8 @@ def big_msg():  # a body over the 4096-byte mini-stream cutoff goes through the 
 async def main():
     tmp = tempfile.mkdtemp()
     files = {'plain': plain_msg(), 'dated': dated_msg(), 'html': html_msg(), 'cp932': cp932_msg(),
+             'nocp': nocp_msg(), 'lying': lying_cp_msg(), 'utf8_as_932': utf8_as_932_msg(),
+             'html_nocp': html_nocp_msg(),
              'rtf': rtf_only_msg(), 'attach': attach_msg(), 'big': big_msg()}
     paths = {}
     for k, data in files.items():
@@ -76,6 +100,20 @@ async def main():
         md = await open_msg('cp932')
         check('Shift_JIS subject', md.splitlines()[0], '# 古い形式の件名')
         check('Shift_JIS body', '本文もShift_JISです' in md, True)
+
+        # the codepage property is missing or wrong in real mail, so the bytes decide
+        md = await open_msg('nocp')
+        check('Shift_JIS with no codepage: subject', md.splitlines()[0], '# codepageなしの件名')
+        check('Shift_JIS with no codepage: body', '本文もShift_JISです' in md, True)
+
+        md = await open_msg('lying')
+        check('Shift_JIS declared as 65001', '本文もShift_JISです' in md, True)
+
+        md = await open_msg('utf8_as_932')
+        check('UTF-8 declared as 932', '本文はUTF-8です' in md, True)
+
+        md = await open_msg('html_nocp')
+        check('Shift_JIS html with no codepage', 'HTML本文です' in md, True)
 
         md = await open_msg('rtf')
         check('an RTF-only body says so', 'RTF形式のため取り出せませんでした' in md, True)
