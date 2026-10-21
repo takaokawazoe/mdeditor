@@ -108,6 +108,17 @@ async def main():
         check('no reconnect prompt after switching to browser', await pg.evaluate("document.getElementById('fsDlg').hidden"))
         await ctx.close()
 
+        # --- the picker is refused outright (DefaultFileSystemWriteGuardSetting = block, or the site's setting)
+        ctx = await b.new_context(viewport={'width': 1200, 'height': 800}); pg = await ctx.new_page()
+        await pg.add_init_script("""window.showDirectoryPicker = async () => {
+            throw Object.assign(new Error("The request is not allowed by the user agent or the platform in the current context."), { name: 'NotAllowedError' }); };""")
+        await pg.goto(URL); await pg.wait_for_timeout(400); await pg.click('[data-choice=browser]')
+        await pg.click('#fs [data-act=switch]'); await pg.click('#fsDlg [data-dlg=ok]'); await pg.wait_for_timeout(400)
+        t = await pg.inner_text('#toast')
+        check('a blocked picker says where to look', 'フォルダの利用が禁止されています' in t and '.zip' in t, t)
+        check('still saving in the browser', 'ブラウザ' in await pg.evaluate(fs_text))
+        await ctx.close()
+
         # --- no folder API (Firefox/Safari): no switch button, no folder items
         ctx = await b.new_context(viewport={'width': 1200, 'height': 800}); pg = await ctx.new_page()
         await pg.add_init_script("delete window.showDirectoryPicker")
