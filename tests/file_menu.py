@@ -77,35 +77,32 @@ async def main():
         check('locked note survives Ctrl+A, Backspace', len(await pg.evaluate(RAWS)) == 4, await pg.evaluate(RAWS))
         await pg.keyboard.press('Escape'); await pg.click('#lockBtn')
 
-        # --- storage panel: browser -> folder -> browser
+        # --- the places list: browser -> a folder -> back
         fs_text = "document.getElementById('fs').innerText.replace(/\\s+/g,' ').trim()"
-        check('browser mode label', 'ブラウザ（ローカルストレージ）' in await pg.evaluate(fs_text), await pg.evaluate(fs_text))
-        await pg.click('#fs [data-act=switch]')
-        check('to-folder dialog', 'ローカルPCのフォルダを選択してください' in await pg.inner_text('#fsDlgMsg'), await pg.inner_text('#fsDlgMsg'))
-        check('to-folder buttons', [await pg.inner_text('#fsDlg [data-dlg=ok]'), await pg.inner_text('#fsDlg [data-dlg=cancel]')] == ['フォルダを選択', 'キャンセル'])
-        await pg.click('#fsDlg [data-dlg=cancel]'); check('cancel closes, still browser', await pg.evaluate("document.getElementById('fsDlg').hidden") and 'ブラウザ' in await pg.evaluate(fs_text))
-        await pg.click('#fs [data-act=switch]'); await pg.click('#fsDlg [data-dlg=ok]'); await pg.wait_for_timeout(1200)
+        check('browser is listed and is the one you are in', await pg.evaluate("document.querySelector('#fs .root.on .nm').textContent"), 'ブラウザ（ローカルストレージ）')
+        check('a folder can be added', await pg.is_visible('#fs [data-act=add]'))
+        await pg.click('#fs [data-act=add]'); await pg.wait_for_timeout(1200)
         t = await pg.evaluate(fs_text)
-        check('folder mode label, long name shortened', 'ローカルPC（とても長い名前のメモ保存用フォルダ…）' in t, t)
-        check('full name in tooltip', await pg.evaluate("document.querySelector('#fs .name').title") == 'とても長い名前のメモ保存用フォルダ2026')
+        check('the folder is now the one you are in, long name shortened', await pg.evaluate("document.querySelector('#fs .root.on .nm').textContent"), 'とても長い名前のメモ保存用フォルダ…')
+        check('full name in tooltip', await pg.evaluate("document.querySelector('#fs .root.on').title") == 'とても長い名前のメモ保存用フォルダ2026')
+        check('browser is still listed', 'ブラウザ（ローカルストレージ）' in t, t)
         check('reload button kept', await pg.is_visible('#fs [data-act=reload]'))
-        await pg.click('#fs [data-act=switch]')
-        check('to-browser dialog', 'ブラウザ（ローカルストレージ）に保存します' in await pg.inner_text('#fsDlgMsg'), await pg.inner_text('#fsDlgMsg'))
-        check('to-browser buttons', [await pg.inner_text('#fsDlg [data-dlg=ok]'), await pg.inner_text('#fsDlg [data-dlg=cancel]')] == ['切り替える', 'キャンセル'])
-        await pg.click('#fsDlg [data-dlg=cancel]'); check('cancel keeps the folder', 'ローカルPC' in await pg.evaluate(fs_text))
 
         # --- reconnect prompt on the next load
         await pg.evaluate("sessionStorage.setItem('askPerm','1')"); await pg.reload(); await pg.wait_for_timeout(600)
         check('reconnect dialog on load', not await pg.evaluate("document.getElementById('fsDlg').hidden") and await pg.inner_text('#fsDlgTitle') == 'フォルダに再接続してください')
         check('reconnect buttons', [await pg.inner_text('#fsDlg [data-dlg=ok]'), await pg.inner_text('#fsDlg [data-dlg=cancel]')] == ['接続する', 'あとで'])
         await pg.click('#fsDlg [data-dlg=cancel]')
-        t = await pg.evaluate(fs_text); check('later -> panel says not connected', '未接続' in t and await pg.is_visible('#fs [data-act=reconnect]'), t)
+        t = await pg.evaluate(fs_text); check('later -> the place says not connected', '未接続' in t and await pg.is_visible('#fs [data-act=reconnect]'), t)
         await pg.click('#fs [data-act=reconnect]'); await pg.wait_for_timeout(1000)
-        t = await pg.evaluate(fs_text); check('reconnected from the panel', '未接続' not in t and 'ローカルPC' in t, t)
-        await pg.click('#fs [data-act=switch]'); await pg.click('#fsDlg [data-dlg=ok]'); await pg.wait_for_timeout(300)
-        check('switched back to browser', 'ブラウザ（ローカルストレージ）' in await pg.evaluate(fs_text), await pg.evaluate(fs_text))
+        t = await pg.evaluate(fs_text); check('reconnected from the panel', '未接続' not in t, t)
+
+        # --- back to the browser, and the folder stays on the list
+        await pg.click('#fs .root[data-root=""]'); await pg.wait_for_timeout(600)
+        check('switched back to the browser', await pg.evaluate("document.querySelector('#fs .root.on .nm').textContent"), 'ブラウザ（ローカルストレージ）')
+        check('the folder is still listed', await pg.evaluate("document.querySelectorAll('#fs .root').length"), 2)
         await pg.reload(); await pg.wait_for_timeout(500)
-        check('no reconnect prompt after switching to browser', await pg.evaluate("document.getElementById('fsDlg').hidden"))
+        check('no reconnect prompt while the browser is the place', await pg.evaluate("document.getElementById('fsDlg').hidden"))
         await ctx.close()
 
         # --- the picker is refused outright (DefaultFileSystemWriteGuardSetting = block, or the site's setting)
@@ -113,7 +110,7 @@ async def main():
         await pg.add_init_script("""window.showDirectoryPicker = async () => {
             throw Object.assign(new Error("The request is not allowed by the user agent or the platform in the current context."), { name: 'NotAllowedError' }); };""")
         await pg.goto(URL); await pg.wait_for_timeout(400); await pg.click('[data-choice=browser]')
-        await pg.click('#fs [data-act=switch]'); await pg.click('#fsDlg [data-dlg=ok]'); await pg.wait_for_timeout(400)
+        await pg.click('#fs [data-act=add]'); await pg.wait_for_timeout(600)
         t = await pg.inner_text('#toast')
         check('a blocked picker says where to look', 'フォルダの利用が禁止されています' in t and '.zip' in t, t)
         check('still saving in the browser', 'ブラウザ' in await pg.evaluate(fs_text))
@@ -123,7 +120,7 @@ async def main():
         ctx = await b.new_context(viewport={'width': 1200, 'height': 800}); pg = await ctx.new_page()
         await pg.add_init_script("delete window.showDirectoryPicker")
         await pg.goto(URL); await pg.wait_for_timeout(400)
-        check('no switch button without folder API', not await pg.is_visible('#fs [data-act=switch]'))
+        check('no add-folder button without folder API', not await pg.is_visible('#fs [data-act=add]'))
         await pg.click('#fileBtn')
         items = await pg.evaluate("[...document.querySelectorAll('#fileMenu .btn')].filter(b=>b.offsetParent).map(b=>b.id)")
         check('folder items hidden without folder API', items == ['openFile', 'openZip', 'download', 'exportZip'], items)

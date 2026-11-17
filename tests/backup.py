@@ -139,14 +139,14 @@ async def main():
         got, want = await pg.evaluate("__out.size"), len(await pg.evaluate(TITLES))
         check('exportToFolder wrote every note', got == want, [got, want, await pg.evaluate("[...__out.keys()]")])
         check('exportToFolder file names are unique', await pg.evaluate("new Set([...__out.keys()].map(k=>k.toLowerCase())).size === __out.size"))
-        check('exportToFolder did not switch the connection', await pg.evaluate("document.querySelector('#fs .nm').textContent") == 'ローカルPC（テストフォルダ）')
+        check('exportToFolder did not switch the place', await pg.evaluate("document.querySelector('#fs .root.on .nm').textContent") == 'テストフォルダ')
 
         # --- one-shot import: adds the folder's .md, keeps the current connection
         await pg.evaluate("__fs.next = __fs.makeDir('読み込み元', new Map([['新規1.md',{text:'# 新規1\\n\\nx',mtime:Date.now()}],['新規2.md',{text:'# 新規2\\n\\ny',mtime:Date.now()}]]))")
         await pg.click('#fileBtn'); await pg.click('#openDir'); await pg.wait_for_timeout(1200)
         t = await pg.evaluate(TITLES)
         check('importFromFolder added both notes', '新規1' in t and '新規2' in t, t)
-        check('importFromFolder did not switch the connection', await pg.evaluate("document.querySelector('#fs .nm').textContent") == 'ローカルPC（テストフォルダ）')
+        check('importFromFolder did not switch the place', await pg.evaluate("document.querySelector('#fs .root.on .nm').textContent") == 'テストフォルダ')
 
         await b.close()
     print('\nFAILED:', errors if errors else 'none')

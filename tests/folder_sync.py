@@ -7,8 +7,8 @@ async def main():
         # emulate the directory picker with the origin-private file system (same handle API)
         await pg.add_init_script("window.showDirectoryPicker = async () => { const r = await navigator.storage.getDirectory(); const d = await r.getDirectoryHandle('memo', {create:true}); Object.defineProperty(d,'name',{value:'memo'}); return d; };")
         await pg.goto("http://localhost:8123/index.html"); await pg.wait_for_timeout(400); await pg.click('[data-choice=later]')
-        print("fs box:", await pg.evaluate("document.getElementById('fs').innerText.slice(0,40)"))
-        await pg.click('#fs [data-act=switch]'); await pg.click('#fsDlg [data-dlg=ok]'); await pg.wait_for_timeout(1200)
+        print("place:", await pg.evaluate("document.querySelector('#fs .root.on .nm').textContent"))
+        await pg.click('#fs [data-act=add]'); await pg.wait_for_timeout(1200)
         ls = "(async()=>{const r=await navigator.storage.getDirectory();const d=await r.getDirectoryHandle('memo');const o=[];for await(const [n,h] of d.entries()){o.push(n+':'+(await (await h.getFile()).text()).length)}return o})()"
         print("files after connect:", await pg.evaluate(ls))
         # type into a new note → file created; then change title → renamed
@@ -22,7 +22,7 @@ async def main():
         print("list:", await pg.evaluate("[...document.querySelectorAll('#list .t')].map(e=>e.textContent)"))
         # reload page → reconnect silently (permission granted for OPFS)
         await pg.reload(); await pg.wait_for_timeout(1000)
-        print("after reload fs box:", await pg.evaluate("document.getElementById('fs').innerText.slice(0,30)"))
+        print("place after reload:", await pg.evaluate("document.querySelector('#fs .root.on .nm').textContent"))
         print("notes with file:", await pg.evaluate("JSON.parse(localStorage.getItem('wysimd.v1')).notes.map(n=>n.file)"))
         # delete the shopping note → file removed
         await pg.evaluate("document.querySelector('#list .item .x').dispatchEvent(new MouseEvent('click',{bubbles:true}))")

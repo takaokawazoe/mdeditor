@@ -89,6 +89,14 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 .fs .btn{padding:4px 8px}
 .fs p{margin:0 0 6px;line-height:1.5}
 .fs .lbl{font-size:11.5px;margin-bottom:2px}
+.fs .roots{display:flex;flex-direction:column;gap:1px;margin-bottom:6px}
+.fs .root{display:flex;align-items:center;gap:6px;width:100%;min-width:0;padding:4px 6px;font:inherit;font-size:12.5px;color:var(--ink-2);text-align:left;background:none;border:0;border-radius:7px;cursor:pointer}
+.fs .root:hover{background:var(--accent-soft)}
+.fs .root.on{color:var(--ink);font-weight:500;background:var(--accent-soft)}
+.fs .root .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fs .root .rx{flex:none;padding:0 2px;border-radius:5px;opacity:0;color:var(--ink-2)}
+.fs .root:hover .rx{opacity:1}
+.fs .root .rx:hover{background:var(--bg);color:var(--danger)}
 .fs .name span.nm{font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fs .name .st{flex:none;font-size:11.5px}
 .tg{font-size:11.5px;font-family:var(--font-mono);color:var(--ink-2);border:1px solid var(--rule);border-radius:5px;padding:3px 6px;line-height:1.2;flex:none}
@@ -450,8 +458,8 @@ const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','
 const PLACEHOLDER = 'ここに書き始めましょう';
 const KEY = 'wysimd.v1';
 
-const MANUAL = "# メモ帳の使い方\n\nこのメモはロックされています。編集したいときは右上の鍵をクリックして解除してください。削除されても、左上の「？」からいつでも入れ直せます。\n\n## 画面の見方\n\n| 場所 | 内容 |\n| --- | --- |\n| サイドバー | メモの一覧（並びは自由に入れ替え可）。上に「すべてのメモを検索」、下に保存先 |\n| 上部バー | ＜ ＞（サイドバーを隠す／表示。スマホは☰）、現在のメモのタイトル、↶ ↷（元に戻す／やり直す）、鍵（ロック）、検索、ファイル、表示 |\n| 編集エリア | 行をクリックすると、その行だけ元のMarkdownが現れて編集できる |\n\n左上の「＜」かCtrl/⌘+`\\`でサイドバーを隠せます。隠すとボタンが「＞」に変わり、押すと戻ります（隠した状態は次に開いたときも続きます）。スマホなど画面が狭いときは「☰」でサイドバーを開閉し、上部バーの操作は「…」にまとまります。\n\n## 基本の書き方\n\n| 書きたいもの | 書き方 | 補足 |\n| --- | --- | --- |\n| 見出し | `# 見出し`（`#`は1〜6個） | 最初の行がメモのタイトルになる |\n| 箇条書き | `- 項目` | Enterで次の項目。空の項目でEnterすると抜ける |\n| 番号付き | `1. 項目` | 番号は表示時に1から振り直す。`1.` だけで書いてもよい |\n| チェックボックス | `- [ ] やること` | 四角をクリックで切り替え |\n| 太字 | `**文字**` | Ctrl/⌘+B |\n| 斜体 | `*文字*` | Ctrl/⌘+I |\n| コード | `` `文字` `` | Ctrl/⌘+E |\n| 取り消し線 | `~~文字~~` |  |\n| リンク | `[文字](https://…)` | Ctrl/⌘を押しながらクリックで開く |\n| 引用 | `> 文章` |  |\n| コードブロック | ```` ``` ```` で囲む | 中ではEnterが改行。閉じの ```` ``` ```` の行末でEnterで抜ける |\n| 区切り線 | `---` |  |\n\n- 「Markdownを表示」「新しいメモ」「ロック／解除」には既定のキーがありません。使いたい場合は設定（⚙）→「キーボード」で割り当ててください\n- Ctrl/⌘+1：チェックボックス（`- [ ] `）、Ctrl/⌘+2：箇条書き（`- `）、Ctrl/⌘+3：番号付き（`1. `）。同じキーをもう一度押すと外れ、別のキーを押すとその形に変わります（箇条書き→番号付き、など）。行を選んでいればまとめて切り替わります\n- これらはブラウザのタブ切り替えと重なることがあります。効かないときは設定（⚙）→「キーボード」で別のキーに変えてください\n- Ctrl/⌘+B（太字）・I（斜体）・E（コード）は切り替えです。文字を選んでから押すとその部分を囲み、もう一度押すと囲みが外れます。何も選ばずに押すと記号だけが入り、そのまま打てます\n- 箇条書きの中でTab：字下げ。Shift+Tabで戻す。番号付きは字下げすると `1.` から\n- Shift+Enter：同じ行の中で改行\n- 行頭でBackspace：前の行とつなぐ\n- Esc：編集をやめる。そのあとEnterで同じ場所に戻ります。↑↓←→を押すと、カーソルがそのまま動いたように上下の行や前後の文字へ入ります（マウスは要りません）\n\n## 表の書き方\n\n`| 名前 | 点数` と書いてEnterを押すと、行末の `|` と区切り行 `| --- | --- |` が自動で入り、次の行が `| ` で始まります。あとはセルを `|` で区切りながら書き、Enterで次の行へ。行頭に `|` だけの状態でEnterを押すと表を抜けます。\n\n- Tab／Shift+Tab：次／前のセルへ。最後のセルでTabするとセルを追加\n- 編集を終えると縦線が揃うよう自動で整形\n- 区切り行を `:---` `:---:` `---:` にすると左寄せ・中央・右寄せ\n- セルの中に `|` を書くときは `\\|`\n\n## 検索と置換\n\n**このメモ内**：上部の「検索」か Ctrl/⌘+F。Ctrl/⌘+H で置換欄も開きます（バー内の「置換」でも切り替え）。\n\n- Aa：大文字と小文字を区別、.*：正規表現\n- Enter／↓で次、Shift+Enter／↑で前。該当する行は薄く色が付き、いま見ている一致はその行の元のMarkdownの中で反転\n- Esc：閉じて、その一致箇所を選択した状態で編集に入る\n- 置換：1件ずつ（置換後は次へ進む）。すべて置換：一括。Undoで戻せる。正規表現なら `$1` で捕捉した文字を使える\n\n**すべてのメモ**：サイドバー上の検索欄（Ctrl/⌘+Shift+F）。該当するメモだけが件数と抜粋つきで並びます。3件まで表示し、「さらに表示」で残りを開きます。クリックするとそのメモが開き、同じ検索語がメモ内検索に引き継がれます。\n\n## 行の選択\n\n編集中の行でShift+↓（行末側）／Shift+↑（行頭側）を押すと、行単位の選択が始まります。続けてShift+↑↓で範囲を伸ばしたり縮めたりできます。\n\n- Ctrl/⌘+C：選択した行のMarkdownをコピー\n- Ctrl/⌘+X、Backspace、Delete：選択した行を削除\n- Ctrl/⌘+V：選択した行をクリップボードの内容で置き換え（複数行なら1行ずつのブロックになります）\n- Tab／Shift+Tab、Alt+Shift+→／←：選択した行をまとめて字下げ／戻す\n- Alt+Shift+↑／↓：選択した行をまとめて上下に移動\n- 文字を打つ、Enter：選択行を消してその場で入力を始める\n- Esc、矢印キー、クリック：選択を解除\n- Ctrl/⌘+A：メモの全行を選択（そのままCtrl/⌘+Cで全体をコピー）\n\n行の途中から別の行の途中まで、という文字単位の選択はできません。\n\n## メモどうしをつなぐ\n\n`[[メモのタイトル]]` と書くと、そのメモへのリンクになります。\n\n- `[[` と打つと、ほかのメモのタイトルが候補に出ます。**該当するものはすべて並び**、多いときは枠の中をスクロールします\n- 続けて文字を打つと絞り込まれ、**打った文字で始まるタイトルが上**に来ます。↑↓で選んでEnter（またはTab）で入ります。クリックでも選べます\n- Escで閉じます。Shift+↑↓など修飾キーと一緒に押したときは、候補を閉じて文書側の操作になります\n- **Ctrl/⌘+クリック**（スマホはタップ）でそのメモへ移動します。普通のクリックは今までどおりその行の編集です\n- そのタイトルのメモがまだ無いときは点線で表示され、押しても何も起きません。あとでそのタイトルのメモを作れば、自動でつながります\n- リンク先のタイトル（1行目）を変えると、**そのメモを指していたリンクを自動で書き換えます**。何件直したかはトーストで出ます\n- 同じタイトルのメモが複数あるときは、一覧で上のものを開き、その旨を知らせます\n- `` `[[文字]]` `` のようにコードで囲んだものはリンクになりません\n- そのメモを参照しているメモがあれば、本文の下に一覧が出ます。クリックするとそのメモへ移動します\n- リンクで移動したあとは、**Alt+←**で元のメモに戻れます。**Alt+→**で進み直せます（上部バーの「表示」メニューからも選べます）。戻ると、そのメモで最後にいた行に合わせます。リンクだけでなく、一覧やバックリンクから開いた分も同じようにたどれます。履歴は50件まで覚え、アプリを閉じると消えます\n- フォルダ保存している .md にもそのまま `[[タイトル]]` と書かれるので、ほかのMarkdownアプリでも読めます\n\n## フォルダで整理する\n\nメモはフォルダに入れて整理できます。ファイルの整理と同じ考え方で、1つのメモはどこか1つのフォルダに入ります。\n\n- **作る**：サイドバー上の「＋ フォルダ」。名前をその場で入力します（Escでやめる）。直前に選んでいたフォルダの中に作られます\n- **入れる**：一覧のメモをフォルダへドラッグします。フォルダ自体をドラッグすれば、中身ごと移せます。スマホは長押しして動かします\n- **ファイルを直接入れる**：.md や .txt、メールのファイルを**フォルダの行に落とす**と、そのフォルダのメモとして追加します。どのフォルダに入るかは、ドラッグ中に画面の案内に出ます（フォルダの中のメモに落としても同じフォルダに入ります）\n- **開け閉め**：フォルダ名をクリック。右の数字はその中のメモの数（下の階層も含む）。開け閉めの状態は次に開いたときも続きます\n- **名前を変える**：フォルダにマウスを乗せて「✎」。中のメモも一緒についてきます\n- **削除**：「×」→「削除する」。**中のメモは消えず、1つ上の階層へ移ります**\n- 新しいメモは、最後に選んだフォルダに入ります\n- **このアプリで作れるフォルダは3階層まで**です（例：`仕事/2026/10月`）。それ以上を作ろうとすると「フォルダは3階層までです」と出ます\n- フォルダ名に `/ \\ : * ? \" < > |` は使えないので、入力しても取り除かれます\n\n**フォルダ保存しているとき**は、画面のフォルダがそのままパソコンのフォルダになります。メモを移すとファイルも移動し、空になったフォルダは片付けます。エクスプローラ側でサブフォルダを作って .md を置けば、そのフォルダのメモとして取り込みます。`.zip` の控えにもフォルダの形がそのまま入ります。\n\nパソコン側に4階層以上のフォルダがあっても、**そのまま読み込んで同じ場所に書き戻します**（勝手にファイルを動かすことはしません）。3階層の制限は、このアプリで新しく作る・移動するときだけに効きます。フォルダ名とタイトルが長すぎてパスが収まらないメモは、**フォルダには保存せず**その旨を知らせます（メモはブラウザに残ります）。\n\n## メモの管理とロック\n\n- 新しいメモ：「＋ 新しいメモ」（一覧の先頭に入ります）\n- 並べ替え：一覧の項目をドラッグして好きな位置へ。スマホでは項目を長押しして持ち上げてから指を動かす（端まで運ぶと一覧がスクロール）。更新しても並びは変わりません\n- 削除：一覧の項目にマウスを乗せて「×」→「削除する」\n- **一覧を右クリック**すると、その場でできることが出ます。メモの上なら「開く／ロック／.mdで保存／複製／削除」、フォルダの上なら「ここに新しいメモ／ここに新しいフォルダ／名前を変える／下の階層をすべて開く・閉じる／削除」、何もない所なら「新しいメモ／新しいフォルダ／すべてのフォルダを閉じる」。↑↓で選んでEnter、Escで閉じます\n- スマホでは各行の右の「…」から同じメニューが開きます\n- ロック：上部の鍵をクリック。ロック中は本文を編集・削除できません。閲覧・検索・コピー・.md保存はできます。もう一度クリックで解除\n- 元に戻す／やり直す：↶ ↷、Ctrl/⌘+Z、Ctrl/⌘+Shift+Z（Ctrl+Y）。履歴はメモごと\n- Markdownを表示：メモ全体を生のMarkdownとして表示・編集\n- ？：この使い方を開く（削除されていれば入れ直す）\n\n## ファイルの読み込みと書き出し\n\n上部バーの「ファイル」（スマホは「…」）にまとまっています。1ファイル＝1メモです。\n\n見た目の切り替えは隣の「表示」メニューです（前のメモへ戻る／次のメモへ進む／Markdownを表示）。\n\n| メニュー | すること |\n| --- | --- |\n| 指定したファイルを開く | 選んだ.md／.txt／.eml／.msg（複数可）をメモとして追加 |\n| .zip内のすべての.mdを開く | .zipの中の.mdをすべてメモとして追加（書き出した控えを戻すとき） |\n| フォルダ内のすべての.mdを開く | 選んだフォルダの.mdをすべて一度だけ読み込む（Chrome/Edge） |\n| このファイルを.mdで保存 | 表示中のメモを.mdファイルとしてダウンロード |\n| すべてのファイルを保存 → フォルダへ書き出し | 選んだフォルダに全メモを `タイトル.md` として一度だけ書き出す（Chrome/Edge） |\n| すべてのファイルを保存 → .zipで保存 | 全メモを1つの.zipにまとめる。スマホでは共有シートが開くので、ファイルアプリやクラウドにそのまま送れる |\n\n- .mdや.txt、.eml、.msg、.zipを画面にドラッグして落としても追加できます。サイドバーのフォルダの上に落とせば、そのフォルダに入ります\n- **メールも読めます**（`.eml` と Outlook の `.msg`）。件名がタイトル、続けて差出人・宛先・日時、その下が本文になります。本文はプレーンな文面を優先し、HTMLしかないメールはタグを外した文章にします。引用（`>`）はそのまま引用として表示されます。添付ファイルは取り込まず、名前だけ末尾に並べます\n- `.msg` で本文がRTF形式しか入っていない場合は取り出せません（その旨を本文に書きます）。暗号化・署名付きのメールも中身は読めません\n- すでに同じ内容のメモがあるファイルは飛ばします。控えを読み直しても二重になりません\n- フォルダへの書き出し・読み込みは一回きりで、そのフォルダを保存先にはしません\n- スマホの「…」には「すべてをコピー」もあり、表示中のメモのMarkdownをまるごとクリップボードへ送れます\n\n## 保存先\n\n最初に開いたとき（Chrome/Edgeでパソコンに置いたHTMLを開いた場合）に、保存先を選ぶ画面が出ます。\n\n- ブラウザに保存：このブラウザの中に保存。ファイルは作らない。最後の変更から0.4秒後に自動保存\n- フォルダに保存：選んだフォルダに各メモを `タイトル.md` として保存。最後の変更から0.7秒後に書き戻し。最初の行を変えるとファイル名も追従、削除するとファイルも消える。フォルダに他のエディタで.mdを追加すると「再読み込み」で取り込む\n\nいまの保存先はサイドバー下に「ブラウザ（ローカルストレージ）」または「ローカルPC（フォルダ名）」と出ています。「保存先の切り替え」で変えられます。\n\n- ブラウザ → ローカルPC：フォルダを選ぶと、いまのメモをそのフォルダに書き出し、フォルダにある.mdも読み込みます\n- ローカルPC → ブラウザ：「切り替える」を押すと、以後はブラウザに保存します。メモはブラウザに残り、フォルダの.mdも消えません\n\nブラウザを開き直したときなどにフォルダへの許可が切れていると、再接続を促す画面が出ます。「接続する」で保存を再開します。「あとで」を選ぶとサイドバー下に「未接続」と出て、接続するまで変更はブラウザにだけ残ります（接続したときにフォルダへ反映します）。\n\nフォルダ保存はChrome/Edge限定で、Claude上の公開版・Firefox・Safari・スマホでは「保存先の切り替え」は出ません。ブラウザの閲覧データを消すとブラウザ内のメモは消えるので、大事なものはフォルダ保存か、「ファイル」→「すべてのファイルを保存」で控えを。\n\n**フォルダ保存中に食い違ったとき**：ブラウザ側と.mdファイルの両方が変わっていたら、更新が新しいほうを残し、負けたほうを「○○（ブラウザ側の写し）」「○○（フォルダ側の写し）」という別のメモにします。どちらの内容も消えません。\n\n## 配色を変える\n\n左上の「⚙」→「配色」で、見た目の色を変えられます（このブラウザにだけ保存されます）。\n\n- **外観**：OSに合わせる／明るい／暗い。「OSに合わせる」なら、OSの設定が変わると自動で切り替わります\n- **配色**：既定・セピア・グレー・高コントラストから選べます\n- **9色の指定**：背景・紙・文字・薄い文字・罫線・アクセント・薄いアクセント・コードの背景・警告を、色見本をクリックして個別に決められます。明るい外観と暗い外観の色は別々に覚えるので、いま表示している側の色を編集します\n- 各色の「既定」でその色だけ戻り、右上の「色を既定に戻す」で外観・配色・個別の色がすべて戻ります\n- 配色を選び直すと、個別に変えた色は戻ります\n\n## ショートカットキーの変更\n\n左上の「⚙」→「キーボード」で、ショートカットキーを変えられます（このブラウザにだけ保存されます）。\n\n| 操作 | 場面 | 既定 |\n| --- | --- | --- |\n| このメモ内を検索／置換／すべてのメモを検索 | いつでも | Ctrl/⌘+F／+H／+Shift+F |\n| 元に戻す／やり直す | いつでも | Ctrl/⌘+Z／+Shift+Z |\n| サイドバーの表示 | いつでも | Ctrl/⌘+`\\` |\n| 前のメモへ戻る／次のメモへ進む | いつでも | Alt+←／Alt+→ |\n| 保存 | いつでも | Ctrl/⌘+S |\n| 全行を選択 | いつでも | Ctrl/⌘+A |\n| 太字／斜体／コード | 編集中 | Ctrl/⌘+B／+I／+E |\n| チェックボックス | 編集中・行選択中 | Ctrl/⌘+1 |\n| 箇条書き | 編集中・行選択中 | Ctrl/⌘+2 |\n| 番号付き | 編集中・行選択中 | Ctrl/⌘+3 |\n| 取り消し線 | 編集中 | （なし） |\n| 引用の付け外し | 編集中・行選択中 | （なし） |\n| リンクの挿入 | 編集中 | （なし） |\n| Markdownを表示／戻す | いつでも | （なし） |\n| 新しいメモ | いつでも | （なし） |\n| ロック／解除 | いつでも | （なし） |\n\n- 「変更」を押してから、割り当てたいキーを押します。Escでやめられます\n- 「なし」で割り当てを消せます。「既定」でその行だけ元に戻り、右上の「すべて既定に戻す」で全部戻ります\n- すでに使われているキーを押すと、その場では変わりません。もう一度同じキーを押すと、そちらへ移ります\n- Enter・Tab・Esc・Backspace・矢印キーは本文の操作に使うので割り当てられません。修飾キー（Ctrl/⌘・Alt・Shift）との組み合わせだけが使えます\n- Ctrl+TやCtrl+Wなど、ブラウザが先に使うキーは効かないことがあります\n- 取り消し線・引用・リンクは、キーを割り当てると使えるようになります。リンクは、文字を選んでいれば `[選んだ文字]()` にしてURLの位置にカーソルが入り、選んでいなければ `[]()` を入れて文字の位置から書き始められます（続けてもう一度押すと取り消せます）\n- 画面が狭いときは、この設定は表示されません\n\n## 困ったときは\n\n- 書式が効かない：`#` や `-` のあとに半角スペースが必要です\n- 表にならない：見出し行の次に `| --- | --- |` の区切り行が必要です。`|` や `-` が全角になっていないか確認してください\n- 「保存先の切り替え」が出ない：ChromeかEdgeで、パソコンに置いたHTMLを直接開いているか確認してください\n- フォルダを選ぼうとすると「フォルダの利用が禁止されています」と出る：会社や学校のパソコンでは、ブラウザの設定でフォルダへのアクセスが禁止されていることがあります（Edge なら `edge://policy` の `DefaultFileSystemWriteGuardSetting` が `2`）。この場合アプリ側ではどうにもできないので、メモはブラウザに保存したまま、「ファイル」→「すべてのファイルを保存」→「.zipで保存」で控えを取ってください。戻すときは「.zip内のすべての.mdを開く」です\n- フォントが違って見える：オフラインではWebフォントが読めず、端末の標準フォントで表示されます";
-const MANUAL_VER = 26;
+const MANUAL = "# メモ帳の使い方\n\nこのメモはロックされています。編集したいときは右上の鍵をクリックして解除してください。削除されても、左上の「？」からいつでも入れ直せます。\n\n## 画面の見方\n\n| 場所 | 内容 |\n| --- | --- |\n| サイドバー | メモの一覧（並びは自由に入れ替え可）。上に「すべてのメモを検索」、下に保存先の一覧 |\n| 上部バー | ＜ ＞（サイドバーを隠す／表示。スマホは☰）、現在のメモのタイトル、↶ ↷（元に戻す／やり直す）、鍵（ロック）、検索、ファイル、表示 |\n| 編集エリア | 行をクリックすると、その行だけ元のMarkdownが現れて編集できる |\n\n左上の「＜」かCtrl/⌘+`\\`でサイドバーを隠せます。隠すとボタンが「＞」に変わり、押すと戻ります（隠した状態は次に開いたときも続きます）。スマホなど画面が狭いときは「☰」でサイドバーを開閉し、上部バーの操作は「…」にまとまります。\n\n## 基本の書き方\n\n| 書きたいもの | 書き方 | 補足 |\n| --- | --- | --- |\n| 見出し | `# 見出し`（`#`は1〜6個） | 最初の行がメモのタイトルになる |\n| 箇条書き | `- 項目` | Enterで次の項目。空の項目でEnterすると抜ける |\n| 番号付き | `1. 項目` | 番号は表示時に1から振り直す。`1.` だけで書いてもよい |\n| チェックボックス | `- [ ] やること` | 四角をクリックで切り替え |\n| 太字 | `**文字**` | Ctrl/⌘+B |\n| 斜体 | `*文字*` | Ctrl/⌘+I |\n| コード | `` `文字` `` | Ctrl/⌘+E |\n| 取り消し線 | `~~文字~~` |  |\n| リンク | `[文字](https://…)` | Ctrl/⌘を押しながらクリックで開く |\n| 引用 | `> 文章` |  |\n| コードブロック | ```` ``` ```` で囲む | 中ではEnterが改行。閉じの ```` ``` ```` の行末でEnterで抜ける |\n| 区切り線 | `---` |  |\n\n- 「Markdownを表示」「新しいメモ」「ロック／解除」には既定のキーがありません。使いたい場合は設定（⚙）→「キーボード」で割り当ててください\n- Ctrl/⌘+1：チェックボックス（`- [ ] `）、Ctrl/⌘+2：箇条書き（`- `）、Ctrl/⌘+3：番号付き（`1. `）。同じキーをもう一度押すと外れ、別のキーを押すとその形に変わります（箇条書き→番号付き、など）。行を選んでいればまとめて切り替わります\n- これらはブラウザのタブ切り替えと重なることがあります。効かないときは設定（⚙）→「キーボード」で別のキーに変えてください\n- Ctrl/⌘+B（太字）・I（斜体）・E（コード）は切り替えです。文字を選んでから押すとその部分を囲み、もう一度押すと囲みが外れます。何も選ばずに押すと記号だけが入り、そのまま打てます\n- 箇条書きの中でTab：字下げ。Shift+Tabで戻す。番号付きは字下げすると `1.` から\n- Shift+Enter：同じ行の中で改行\n- 行頭でBackspace：前の行とつなぐ\n- Esc：編集をやめる。そのあとEnterで同じ場所に戻ります。↑↓←→を押すと、カーソルがそのまま動いたように上下の行や前後の文字へ入ります（マウスは要りません）\n\n## 表の書き方\n\n`| 名前 | 点数` と書いてEnterを押すと、行末の `|` と区切り行 `| --- | --- |` が自動で入り、次の行が `| ` で始まります。あとはセルを `|` で区切りながら書き、Enterで次の行へ。行頭に `|` だけの状態でEnterを押すと表を抜けます。\n\n- Tab／Shift+Tab：次／前のセルへ。最後のセルでTabするとセルを追加\n- 編集を終えると縦線が揃うよう自動で整形\n- 区切り行を `:---` `:---:` `---:` にすると左寄せ・中央・右寄せ\n- セルの中に `|` を書くときは `\\|`\n\n## 検索と置換\n\n**このメモ内**：上部の「検索」か Ctrl/⌘+F。Ctrl/⌘+H で置換欄も開きます（バー内の「置換」でも切り替え）。\n\n- Aa：大文字と小文字を区別、.*：正規表現\n- Enter／↓で次、Shift+Enter／↑で前。該当する行は薄く色が付き、いま見ている一致はその行の元のMarkdownの中で反転\n- Esc：閉じて、その一致箇所を選択した状態で編集に入る\n- 置換：1件ずつ（置換後は次へ進む）。すべて置換：一括。Undoで戻せる。正規表現なら `$1` で捕捉した文字を使える\n\n**すべてのメモ**：サイドバー上の検索欄（Ctrl/⌘+Shift+F）。該当するメモだけが件数と抜粋つきで並びます。3件まで表示し、「さらに表示」で残りを開きます。クリックするとそのメモが開き、同じ検索語がメモ内検索に引き継がれます。\n\n## 行の選択\n\n編集中の行でShift+↓（行末側）／Shift+↑（行頭側）を押すと、行単位の選択が始まります。続けてShift+↑↓で範囲を伸ばしたり縮めたりできます。\n\n- Ctrl/⌘+C：選択した行のMarkdownをコピー\n- Ctrl/⌘+X、Backspace、Delete：選択した行を削除\n- Ctrl/⌘+V：選択した行をクリップボードの内容で置き換え（複数行なら1行ずつのブロックになります）\n- Tab／Shift+Tab、Alt+Shift+→／←：選択した行をまとめて字下げ／戻す\n- Alt+Shift+↑／↓：選択した行をまとめて上下に移動\n- 文字を打つ、Enter：選択行を消してその場で入力を始める\n- Esc、矢印キー、クリック：選択を解除\n- Ctrl/⌘+A：メモの全行を選択（そのままCtrl/⌘+Cで全体をコピー）\n\n行の途中から別の行の途中まで、という文字単位の選択はできません。\n\n## メモどうしをつなぐ\n\n`[[メモのタイトル]]` と書くと、そのメモへのリンクになります。\n\n- `[[` と打つと、ほかのメモのタイトルが候補に出ます。**該当するものはすべて並び**、多いときは枠の中をスクロールします\n- 続けて文字を打つと絞り込まれ、**打った文字で始まるタイトルが上**に来ます。↑↓で選んでEnter（またはTab）で入ります。クリックでも選べます\n- Escで閉じます。Shift+↑↓など修飾キーと一緒に押したときは、候補を閉じて文書側の操作になります\n- **Ctrl/⌘+クリック**（スマホはタップ）でそのメモへ移動します。普通のクリックは今までどおりその行の編集です\n- そのタイトルのメモがまだ無いときは点線で表示され、押しても何も起きません。あとでそのタイトルのメモを作れば、自動でつながります\n- リンク先のタイトル（1行目）を変えると、**そのメモを指していたリンクを自動で書き換えます**。何件直したかはトーストで出ます\n- 同じタイトルのメモが複数あるときは、一覧で上のものを開き、その旨を知らせます\n- `` `[[文字]]` `` のようにコードで囲んだものはリンクになりません\n- そのメモを参照しているメモがあれば、本文の下に一覧が出ます。クリックするとそのメモへ移動します\n- リンクで移動したあとは、**Alt+←**で元のメモに戻れます。**Alt+→**で進み直せます（上部バーの「表示」メニューからも選べます）。戻ると、そのメモで最後にいた行に合わせます。リンクだけでなく、一覧やバックリンクから開いた分も同じようにたどれます。履歴は50件まで覚え、アプリを閉じると消えます\n- フォルダ保存している .md にもそのまま `[[タイトル]]` と書かれるので、ほかのMarkdownアプリでも読めます\n\n## フォルダで整理する\n\nメモはフォルダに入れて整理できます。ファイルの整理と同じ考え方で、1つのメモはどこか1つのフォルダに入ります。\n\n- **作る**：サイドバー上の「＋ フォルダ」。名前をその場で入力します（Escでやめる）。直前に選んでいたフォルダの中に作られます\n- **入れる**：一覧のメモをフォルダへドラッグします。フォルダ自体をドラッグすれば、中身ごと移せます。スマホは長押しして動かします\n- **ファイルを直接入れる**：.md や .txt、メールのファイルを**フォルダの行に落とす**と、そのフォルダのメモとして追加します。どのフォルダに入るかは、ドラッグ中に画面の案内に出ます（フォルダの中のメモに落としても同じフォルダに入ります）\n- **開け閉め**：フォルダ名をクリック。右の数字はその中のメモの数（下の階層も含む）。開け閉めの状態は次に開いたときも続きます\n- **名前を変える**：フォルダにマウスを乗せて「✎」。中のメモも一緒についてきます\n- **削除**：「×」→「削除する」。**中のメモは消えず、1つ上の階層へ移ります**\n- 新しいメモは、最後に選んだフォルダに入ります\n- **このアプリで作れるフォルダは3階層まで**です（例：`仕事/2026/10月`）。それ以上を作ろうとすると「フォルダは3階層までです」と出ます\n- フォルダ名に `/ \\ : * ? \" < > |` は使えないので、入力しても取り除かれます\n\n**フォルダ保存しているとき**は、画面のフォルダがそのままパソコンのフォルダになります。メモを移すとファイルも移動し、空になったフォルダは片付けます。エクスプローラ側でサブフォルダを作って .md を置けば、そのフォルダのメモとして取り込みます。`.zip` の控えにもフォルダの形がそのまま入ります。\n\nパソコン側に4階層以上のフォルダがあっても、**そのまま読み込んで同じ場所に書き戻します**（勝手にファイルを動かすことはしません）。3階層の制限は、このアプリで新しく作る・移動するときだけに効きます。フォルダ名とタイトルが長すぎてパスが収まらないメモは、**フォルダには保存せず**その旨を知らせます（メモはブラウザに残ります）。\n\n## メモの管理とロック\n\n- 新しいメモ：「＋ 新しいメモ」（一覧の先頭に入ります）\n- 並べ替え：一覧の項目をドラッグして好きな位置へ。スマホでは項目を長押しして持ち上げてから指を動かす（端まで運ぶと一覧がスクロール）。更新しても並びは変わりません\n- 削除：一覧の項目にマウスを乗せて「×」→「削除する」\n- **一覧を右クリック**すると、その場でできることが出ます。メモの上なら「開く／ロック／.mdで保存／複製／削除」、フォルダの上なら「ここに新しいメモ／ここに新しいフォルダ／名前を変える／下の階層をすべて開く・閉じる／削除」、何もない所なら「新しいメモ／新しいフォルダ／すべてのフォルダを閉じる」。↑↓で選んでEnter、Escで閉じます\n- スマホでは各行の右の「…」から同じメニューが開きます\n- ロック：上部の鍵をクリック。ロック中は本文を編集・削除できません。閲覧・検索・コピー・.md保存はできます。もう一度クリックで解除\n- 元に戻す／やり直す：↶ ↷、Ctrl/⌘+Z、Ctrl/⌘+Shift+Z（Ctrl+Y）。履歴はメモごと\n- Markdownを表示：メモ全体を生のMarkdownとして表示・編集\n- ？：この使い方を開く（削除されていれば入れ直す）\n\n## ファイルの読み込みと書き出し\n\n上部バーの「ファイル」（スマホは「…」）にまとまっています。1ファイル＝1メモです。\n\n見た目の切り替えは隣の「表示」メニューです（前のメモへ戻る／次のメモへ進む／Markdownを表示）。\n\n| メニュー | すること |\n| --- | --- |\n| 指定したファイルを開く | 選んだ.md／.txt／.eml／.msg（複数可）をメモとして追加 |\n| .zip内のすべての.mdを開く | .zipの中の.mdをすべてメモとして追加（書き出した控えを戻すとき） |\n| フォルダ内のすべての.mdを開く | 選んだフォルダの.mdをすべて一度だけ読み込む（Chrome/Edge） |\n| このファイルを.mdで保存 | 表示中のメモを.mdファイルとしてダウンロード |\n| すべてのファイルを保存 → フォルダへ書き出し | 選んだフォルダに、いま開いている保存先の全メモを `タイトル.md` として一度だけ書き出す（Chrome/Edge） |\n| すべてのファイルを保存 → .zipで保存 | 全メモを1つの.zipにまとめる。スマホでは共有シートが開くので、ファイルアプリやクラウドにそのまま送れる |\n\n- .mdや.txt、.eml、.msg、.zipを画面にドラッグして落としても追加できます。サイドバーのフォルダの上に落とせば、そのフォルダに入ります\n- **メールも読めます**（`.eml` と Outlook の `.msg`）。件名がタイトル、続けて差出人・宛先・日時、その下が本文になります。本文はプレーンな文面を優先し、HTMLしかないメールはタグを外した文章にします。引用（`>`）はそのまま引用として表示されます。添付ファイルは取り込まず、名前だけ末尾に並べます\n- `.msg` で本文がRTF形式しか入っていない場合は取り出せません（その旨を本文に書きます）。暗号化・署名付きのメールも中身は読めません\n- すでに同じ内容のメモがあるファイルは飛ばします。控えを読み直しても二重になりません\n- フォルダへの書き出し・読み込みは一回きりで、そのフォルダを保存先にはしません\n- スマホの「…」には「すべてをコピー」もあり、表示中のメモのMarkdownをまるごとクリップボードへ送れます\n\n## 保存先を切り替える\n\nサイドバーの下に、保存先が一覧で出ます。**ブラウザ**と、あなたが追加した**フォルダ**が並び、クリックでそこへ移ります。**画面に出るのは、いま開いている保存先のメモだけ**です。\n\n- **ブラウザ（ローカルストレージ）**：このブラウザの中に保存。ファイルは作らない。最後の変更から0.4秒後に自動保存\n- **＋ フォルダを追加**：選んだフォルダを一覧に足して、そこへ移ります。そのフォルダにある .md がメモとして並び、以後は各メモを `タイトル.md` として保存します（最後の変更から0.7秒後）。最初の行を変えるとファイル名も追従、削除するとファイルも消えます\n- **いまのメモは持っていきません。** フォルダを追加しても、ブラウザのメモはブラウザに残ったままです。移したいときは「ファイル」→「すべてのファイルを保存」→「フォルダへ書き出し」を使ってください\n- フォルダはいくつでも追加できます。仕事用と私物用、のように分けて使えます\n- 行の右の **×** でフォルダを一覧から外せます。**フォルダの中の .md はそのまま残り**、そのフォルダのメモだけがアプリの一覧から消えます。あとで「＋ フォルダを追加」で開き直せば、また読み込みます\n- 最後に開いていた保存先は、次に開いたときも続きます\n- 他のエディタでそのフォルダに .md を足したときは「再読み込み」で取り込みます\n\n**保存先をまたいだ検索・リンクはできません。** 「すべてのメモを検索」も `[[タイトル]]` のリンクも、いま開いている保存先の中だけが対象です（別の保存先のメモは無いものとして扱われ、リンクは点線になります）。混ぜたくない単位で分けて使ってください。\n\n最初に開いたとき（Chrome/Edgeでパソコンに置いたHTMLを開いた場合）に、ブラウザとフォルダのどちらで始めるかを聞く画面が出ます。ここでフォルダを選んだときだけは、同梱の使い方メモごとそのフォルダに書き出します。\n\nブラウザを開き直したときなどにフォルダへの許可が切れていると、再接続を促す画面が出ます。「接続する」で保存を再開します。「あとで」を選ぶとサイドバー下に「未接続」と出て、接続するまで変更はブラウザにだけ残ります（接続したときにフォルダへ反映します）。\n\nフォルダの .md を他のアプリやエクスプローラで消したときは、そのメモは「ブラウザ」に移ります（中身は消えません）。\n\nフォルダ保存はChrome/Edge限定で、Claude上の公開版・Firefox・Safari・スマホでは「＋ フォルダを追加」は出ません。ブラウザの閲覧データを消すとブラウザ内のメモは消えるので、大事なものはフォルダ保存か、「ファイル」→「すべてのファイルを保存」で控えを。\n\n**フォルダ保存中に食い違ったとき**：ブラウザ側と.mdファイルの両方が変わっていたら、更新が新しいほうを残し、負けたほうを「○○（ブラウザ側の写し）」「○○（フォルダ側の写し）」という別のメモにします。どちらの内容も消えません。\n\n## 配色を変える\n\n左上の「⚙」→「配色」で、見た目の色を変えられます（このブラウザにだけ保存されます）。\n\n- **外観**：OSに合わせる／明るい／暗い。「OSに合わせる」なら、OSの設定が変わると自動で切り替わります\n- **配色**：既定・セピア・グレー・高コントラストから選べます\n- **9色の指定**：背景・紙・文字・薄い文字・罫線・アクセント・薄いアクセント・コードの背景・警告を、色見本をクリックして個別に決められます。明るい外観と暗い外観の色は別々に覚えるので、いま表示している側の色を編集します\n- 各色の「既定」でその色だけ戻り、右上の「色を既定に戻す」で外観・配色・個別の色がすべて戻ります\n- 配色を選び直すと、個別に変えた色は戻ります\n\n## ショートカットキーの変更\n\n左上の「⚙」→「キーボード」で、ショートカットキーを変えられます（このブラウザにだけ保存されます）。\n\n| 操作 | 場面 | 既定 |\n| --- | --- | --- |\n| このメモ内を検索／置換／すべてのメモを検索 | いつでも | Ctrl/⌘+F／+H／+Shift+F |\n| 元に戻す／やり直す | いつでも | Ctrl/⌘+Z／+Shift+Z |\n| サイドバーの表示 | いつでも | Ctrl/⌘+`\\` |\n| 前のメモへ戻る／次のメモへ進む | いつでも | Alt+←／Alt+→ |\n| 保存 | いつでも | Ctrl/⌘+S |\n| 全行を選択 | いつでも | Ctrl/⌘+A |\n| 太字／斜体／コード | 編集中 | Ctrl/⌘+B／+I／+E |\n| チェックボックス | 編集中・行選択中 | Ctrl/⌘+1 |\n| 箇条書き | 編集中・行選択中 | Ctrl/⌘+2 |\n| 番号付き | 編集中・行選択中 | Ctrl/⌘+3 |\n| 取り消し線 | 編集中 | （なし） |\n| 引用の付け外し | 編集中・行選択中 | （なし） |\n| リンクの挿入 | 編集中 | （なし） |\n| Markdownを表示／戻す | いつでも | （なし） |\n| 新しいメモ | いつでも | （なし） |\n| ロック／解除 | いつでも | （なし） |\n\n- 「変更」を押してから、割り当てたいキーを押します。Escでやめられます\n- 「なし」で割り当てを消せます。「既定」でその行だけ元に戻り、右上の「すべて既定に戻す」で全部戻ります\n- すでに使われているキーを押すと、その場では変わりません。もう一度同じキーを押すと、そちらへ移ります\n- Enter・Tab・Esc・Backspace・矢印キーは本文の操作に使うので割り当てられません。修飾キー（Ctrl/⌘・Alt・Shift）との組み合わせだけが使えます\n- Ctrl+TやCtrl+Wなど、ブラウザが先に使うキーは効かないことがあります\n- 取り消し線・引用・リンクは、キーを割り当てると使えるようになります。リンクは、文字を選んでいれば `[選んだ文字]()` にしてURLの位置にカーソルが入り、選んでいなければ `[]()` を入れて文字の位置から書き始められます（続けてもう一度押すと取り消せます）\n- 画面が狭いときは、この設定は表示されません\n\n## 困ったときは\n\n- 書式が効かない：`#` や `-` のあとに半角スペースが必要です\n- 表にならない：見出し行の次に `| --- | --- |` の区切り行が必要です。`|` や `-` が全角になっていないか確認してください\n- 「＋ フォルダを追加」が出ない：ChromeかEdgeで、パソコンに置いたHTMLを直接開いているか確認してください\n- フォルダを選ぼうとすると「フォルダの利用が禁止されています」と出る：会社や学校のパソコンでは、ブラウザの設定でフォルダへのアクセスが禁止されていることがあります（Edge なら `edge://policy` の `DefaultFileSystemWriteGuardSetting` が `2`）。この場合アプリ側ではどうにもできないので、メモはブラウザに保存したまま、「ファイル」→「すべてのファイルを保存」→「.zipで保存」で控えを取ってください。戻すときは「.zip内のすべての.mdを開く」です\n- フォントが違って見える：オフラインではWebフォントが読めず、端末の標準フォントで表示されます";
+const MANUAL_VER = 27;
 const SAMPLE = [
   '# メモ帳へようこそ',
   '',
@@ -490,12 +498,30 @@ const SAMPLE = [
 
 /* ---------- state ---------- */
 let notes = [], currentId = null, confirmId = null, editingEl = null, saveTimer = null, downloads = null;
+// Saved places ("ワークスペース"): the browser, plus any folders that have been added.
+// Only one is on screen at a time — `activeRoot` — and `note.root` says which place a note
+// belongs to ('' = the browser). The folder handles themselves live in IndexedDB.
+let roots = [], activeRoot = '';
+const rootOf = n => n.root || '';
+const rootById = id => roots.find(r => r.id === id) || null;
+const visibleNotes = () => notes.filter(n => rootOf(n) === activeRoot);
 const cur = () => notes.find(n => n.id === currentId);
-const sortedNotes = () => [...notes].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || b.updated - a.updated);
-const topOrder = () => notes.length ? Math.min(...notes.map(n => n.order ?? 0)) - 1 : 0;
+const sortedNotes = () => visibleNotes().sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || b.updated - a.updated);
+const topOrder = () => { const v = visibleNotes(); return v.length ? Math.min(...v.map(n => n.order ?? 0)) - 1 : 0; };
 const isLocked = () => !!(cur() && cur().locked);
 function lockedToast() { toast('このメモはロック中です。右上の鍵で解除できます'); }
-const newNote = (md = '', folder = '') => ({ id: 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), blocks: splitToBlocks(md), updated: Date.now(), order: topOrder(), folder });
+const newNote = (md = '', folder = '') => ({ id: 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), blocks: splitToBlocks(md), updated: Date.now(), order: topOrder(), folder, root: activeRoot });
+// every place shows at least one note, and what is open has to be one of them
+function ensureNote() {
+  const v = sortedNotes();
+  if (v.length) { if (!v.some(n => n.id === currentId)) currentId = v[0].id; return; }
+  const n = newNote(''); n.placeholder = true; notes.push(n); currentId = n.id; // just so there is something to type in
+}
+// ... and that empty one is not worth keeping once you leave the place again
+function dropPlaceholder(root) {
+  const i = notes.findIndex(n => rootOf(n) === root && n.placeholder && !n.file && !n.blocks.join('').trim());
+  if (i >= 0) { delete histories[notes[i].id]; notes.splice(i, 1); }
+}
 
 /* ---------- folders ---------- */
 // A note lives in exactly one folder, like a file on disk. `note.folder` is the path
@@ -509,21 +535,23 @@ const subtreeDepth = p => Math.max(...folderPaths().filter(x => x === p || x.sta
 const tooDeep = () => toast('フォルダは' + MAX_DEPTH + '階層までです', 2600);
 const parentOf = p => (p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : '');
 const baseOf = p => p.slice(p.lastIndexOf('/') + 1);
+const ownFolders = () => folders.filter(f => (f.root || '') === activeRoot); // each place has its own tree
 function folderPaths() {
   const set = new Set();
   const add = p => { while (p) { set.add(p); p = parentOf(p); } };
-  for (const f of folders) add(f.path);
-  for (const n of notes) add(folderOf(n));
+  for (const f of ownFolders()) add(f.path);
+  for (const n of visibleNotes()) add(folderOf(n));
   return [...set].sort((a, b) => a.localeCompare(b, 'ja'));
 }
-const folderOpen = p => { const f = folders.find(x => x.path === p); return !f || f.open !== false; };
+const folderRec = p => folders.find(x => x.path === p && (x.root || '') === activeRoot);
+const folderOpen = p => { const f = folderRec(p); return !f || f.open !== false; };
 function setFolderOpen(p, open) {
-  const f = folders.find(x => x.path === p);
-  if (f) f.open = open; else folders.push({ path: p, open });
+  const f = folderRec(p);
+  if (f) f.open = open; else folders.push({ path: p, open, root: activeRoot });
   persist();
 }
-const notesIn = p => notes.filter(n => folderOf(n) === p).length;
-const deepCount = p => notes.filter(n => folderOf(n) === p || folderOf(n).startsWith(p + '/')).length;
+const notesIn = p => visibleNotes().filter(n => folderOf(n) === p).length;
+const deepCount = p => visibleNotes().filter(n => folderOf(n) === p || folderOf(n).startsWith(p + '/')).length;
 function uniqueFolder(parent, name) { // "新しいフォルダ", "新しいフォルダ 2", …
   const all = new Set(folderPaths());
   let base = name, k = 2, path = parent ? parent + '/' + base : base;
@@ -532,14 +560,14 @@ function uniqueFolder(parent, name) { // "新しいフォルダ", "新しいフ�
 }
 function renameFolder(from, to) {
   if (!to || from === to) return;
-  for (const n of notes) {
+  for (const n of visibleNotes()) {
     const p = folderOf(n);
     if (p === from) n.folder = to;
     else if (p.startsWith(from + '/')) n.folder = to + p.slice(from.length);
     else continue;
     n.updated = Date.now(); fsMark(n.id);
   }
-  for (const f of folders) {
+  for (const f of ownFolders()) {
     if (f.path === from) f.path = to;
     else if (f.path.startsWith(from + '/')) f.path = to + f.path.slice(from.length);
   }
@@ -550,11 +578,11 @@ function renameFolder(from, to) {
 function removeFolder(path) { // the notes inside move up to the parent, nothing is thrown away
   const up = parentOf(path);
   let moved = 0;
-  for (const n of notes) {
+  for (const n of visibleNotes()) {
     const p = folderOf(n);
     if (p === path || p.startsWith(path + '/')) { n.folder = up; n.updated = Date.now(); fsMark(n.id); moved++; }
   }
-  folders = folders.filter(f => f.path !== path && !f.path.startsWith(path + '/'));
+  folders = folders.filter(f => (f.root || '') !== activeRoot || (f.path !== path && !f.path.startsWith(path + '/')));
   if (activeFolder === path || activeFolder.startsWith(path + '/')) activeFolder = up;
   persist(); renderList();
   toast(moved ? 'フォルダを削除し、' + moved + '件を' + (up ? '「' + baseOf(up) + '」' : '直下') + 'に移しました' : 'フォルダを削除しました');
@@ -563,8 +591,18 @@ let firstRun = false;
 function load() {
   try {
     const j = JSON.parse(localStorage.getItem(KEY));
-    if (j && Array.isArray(j.notes) && j.notes.length) { notes = j.notes; currentId = j.currentId; folders = Array.isArray(j.folders) ? j.folders : []; }
+    if (j && Array.isArray(j.notes) && j.notes.length) {
+      notes = j.notes; currentId = j.currentId; folders = Array.isArray(j.folders) ? j.folders : [];
+      roots = Array.isArray(j.roots) ? j.roots : []; activeRoot = j.activeRoot || '';
+    }
   } catch (e) {}
+  // saved by a version that knew only one folder: everything written to it becomes the first place.
+  // fsInit() fills in its name from the handle, or drops it again if the handle is gone.
+  if (!roots.length && notes.some(n => n.file)) {
+    roots = [{ id: 'r0', label: '' }];
+    for (const n of notes) if (n.file) n.root = 'r0';
+    activeRoot = 'r0';
+  }
   if (notes.some(n => n.order == null)) [...notes].sort((a, b) => b.updated - a.updated).forEach((n, i) => { if (n.order == null) n.order = i; });
   // regroup blocks saved by older versions (e.g. table rows stored one per block)
   for (const n of notes) if (Array.isArray(n.blocks)) n.blocks = splitToBlocks(n.blocks.join('\n'));
@@ -575,9 +613,9 @@ function load() {
   }
   // a bundled manual that is still locked (untouched) is refreshed when this file ships a newer one
   for (const m of notes) if (m.manual && m.locked && (m.manualVer || 0) < MANUAL_VER) { m.blocks = splitToBlocks(MANUAL); m.manualVer = MANUAL_VER; }
-  if (!cur()) currentId = notes[0].id;
+  ensureNote();
 }
-function persist() { try { localStorage.setItem(KEY, JSON.stringify({ notes, currentId, folders })); } catch (e) {} }
+function persist() { try { localStorage.setItem(KEY, JSON.stringify({ notes, currentId, folders, roots, activeRoot })); } catch (e) {} }
 function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(persist, 400); if (currentId) fsMark(currentId); }
 
 /* ---------- markdown ---------- */
@@ -926,7 +964,7 @@ function relinkTitle(from, to) {
   if (!from || !to || from === to) return;
   const re = new RegExp('\\[\\[\\s*' + escRe(from) + '\\s*\\]\\]', 'g');
   let hits = 0;
-  for (const n of notes) {
+  for (const n of visibleNotes()) { // links only reach inside the place you are in
     if (n.id === currentId) continue;
     let touched = false;
     n.blocks = n.blocks.map(raw => { const next = raw.replace(re, '[[' + to + ']]'); if (next !== raw) { touched = true; hits++; } return next; });
@@ -1462,7 +1500,7 @@ blocksEl.addEventListener('mousedown', e => {
     e.preventDefault();
     const target = noteByTitle(nl.dataset.note);
     if (!target) return; // no note with that title: nothing happens
-    const same = notes.filter(n => noteTitle(n) === nl.dataset.note.trim()).length;
+    const same = visibleNotes().filter(n => noteTitle(n) === nl.dataset.note.trim()).length;
     openNote(target.id); closeSide();
     if (same > 1) toast('同じタイトルのメモが' + same + '件あります。一覧で上のものを開きました', 3000);
     return;
@@ -1956,7 +1994,7 @@ function navPush(id) {
 function navGo(dir) {
   navRemember();
   let to = navAt + dir;
-  while (to >= 0 && to < navStack.length && !notes.some(n => n.id === navStack[to].id)) to += dir; // skip notes that are gone
+  while (to >= 0 && to < navStack.length && !visibleNotes().some(n => n.id === navStack[to].id)) to += dir; // skip notes that are gone
   if (to < 0 || to >= navStack.length) return;
   navAt = to;
   const e = navStack[navAt];
@@ -1975,8 +2013,8 @@ function navDrop(id) { // a deleted note leaves no trace in the history
   renderNav();
 }
 function renderNav() {
-  const back = navStack.slice(0, navAt).some(e => notes.some(n => n.id === e.id));
-  const fwd = navStack.slice(navAt + 1).some(e => notes.some(n => n.id === e.id));
+  const back = navStack.slice(0, navAt).some(e => visibleNotes().some(n => n.id === e.id));
+  const fwd = navStack.slice(navAt + 1).some(e => visibleNotes().some(n => n.id === e.id));
   $('#navBack').disabled = !back; $('#navFwd').disabled = !fwd;
 }
 $('#navBack').addEventListener('click', e => { e.currentTarget.blur(); navGo(-1); }); // let the keyboard carry on in the text
@@ -2079,7 +2117,7 @@ $('#newFolder').addEventListener('click', () => {
   const here = activeFolder;
   if (depthOf(here) >= MAX_DEPTH) { tooDeep(); return; }
   const path = uniqueFolder(here, '新しいフォルダ');
-  folders.push({ path, open: true });
+  folders.push({ path, open: true, root: activeRoot });
   if (here) setFolderOpen(here, true);
   activeFolder = path; // what you make next goes inside the folder you just made
   persist(); startRename(path);
@@ -2287,14 +2325,14 @@ function deleteNote(id) {
   const gone = notes.find(n => n.id === id);
   notes = notes.filter(n => n.id !== id); confirmId = null; delete histories[id];
   if (gone && gone.file) fsRemove(gone.file);
-  if (!notes.length) notes.push(newNote(''));
   navDrop(id);
-  if (currentId === id) currentId = sortedNotes()[0].id;
+  ensureNote();
   renderNote(); renderList(); persist();
   toast('メモを削除しました');
 }
 $('#newNote').addEventListener('click', () => {
   if (editingEl) leaveEdit(editingEl);
+  dropPlaceholder(activeRoot); // the empty one we made to open the place is not needed any more
   const n = newNote('', activeFolder); notes.push(n); navPush(n.id); currentId = n.id; confirmId = null; // the new note joins the folder you picked last
   renderNote(); renderList(); persist(); closeSide();
   enterEdit(blocksEl.firstElementChild, 0);
@@ -2495,6 +2533,7 @@ $('#devReset').addEventListener('click', async () => {
   window.removeEventListener('beforeunload', persist);
   try { for (const k of Object.keys(localStorage)) if (k.startsWith('wysimd')) localStorage.removeItem(k); } catch (e) {}
   await idb.del('dir');
+  for (const r of roots) await idb.del('dir:' + r.id);
   location.reload();
 });
 $('#sClose').addEventListener('click', () => { settingsEl.hidden = true; });
@@ -2523,7 +2562,7 @@ function toggleLock(n) {
 }
 $('#lockBtn').addEventListener('click', () => toggleLock(cur()));
 $('#helpBtn').addEventListener('click', () => {
-  let m = notes.find(x => x.manual);
+  let m = visibleNotes().find(x => x.manual);
   if (!m) { m = newNote(MANUAL); m.manual = true; m.locked = true; m.manualVer = MANUAL_VER; notes.push(m); toast('使い方のメモを追加しました'); }
   openNote(m.id); closeSide();
   blocksEl.scrollIntoView({ block: 'start' });
@@ -2816,7 +2855,7 @@ async function importFiles(fileList, into = '') {
   files.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
   if (!files.length) { toast(badMail ? 'メールファイルとして読めませんでした' : badZip ? '.zip を読めませんでした' : '読み込めるのは .md / .txt / .eml / .msg / .zip です'); return; }
   if (editingEl) leaveEdit(editingEl);
-  const have = new Set(notes.map(n => n.blocks.join('\n')));
+  const have = new Set(visibleNotes().map(n => n.blocks.join('\n')));
   let first = null, added = 0, same = 0;
   for (const f of [...files].reverse()) {
     let md = (await decodeFile(f)).replace(/^\uFEFF/, '');
@@ -2831,6 +2870,7 @@ async function importFiles(fileList, into = '') {
   }
   const tail = (skipped ? '（テキスト以外の' + skipped + '件は除外）' : '') + (badMail ? '（読めないメール' + badMail + '件）' : '') + (same ? '（同じ内容の' + same + '件は省略）' : '') + (badZip ? '（読めない.zipが' + badZip + '件）' : '');
   if (!added) { toast('追加するメモはありませんでした' + tail, 3000); return; }
+  dropPlaceholder(activeRoot);
   if (into) setFolderOpen(into, true); // show what just landed there
   navPush(first.id); currentId = first.id; confirmId = null;
   renderNote(); renderList(); persist(); closeSide();
@@ -2935,7 +2975,7 @@ function fileNameFor(n) {
   const dir = safeFolder(folderOf(n)), base = safeName(noteTitle(n));
   const path = k => (dir ? dir + '/' : '') + base + (k ? '-' + k : '') + '.md';
   let k = 0;
-  while (notes.some(o => o !== n && o.file === path(k))) k = k ? k + 1 : 2;
+  while (notes.some(o => o !== n && rootOf(o) === rootOf(n) && o.file === path(k))) k = k ? k + 1 : 2;
   return path(k);
 }
 const dirPart = path => (path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '');
@@ -2958,46 +2998,112 @@ async function fsWalk(h, prefix, out) {
 }
 const shortName = (t, max = 18) => t.length > max ? t.slice(0, max - 1) + '…' : t;
 // the sidebar foot shows where notes are saved; changing it goes through fsDialog()
+// the sidebar foot lists the places you can be in; the one you are in is marked
 function renderFs() {
-  let h = '<div class="lbl">保存先</div>';
-  if (dirHandle) {
-    h += '<div class="name" title="' + esc(dirHandle.name) + '"><span class="dot"></span><span class="nm">ローカルPC（' + esc(shortName(dirHandle.name)) + '）</span></div>'
-      + '<div class="acts"><button class="btn" data-act="reload">再読み込み</button><button class="btn" data-act="switch">保存先の切り替え</button></div>';
-  } else if (pendingHandle) {
-    h += '<div class="name" title="' + esc(pendingHandle.name) + '"><span class="dot off"></span><span class="nm">ローカルPC（' + esc(shortName(pendingHandle.name)) + '）</span><span class="st">未接続</span></div>'
-      + '<div class="acts"><button class="btn primary" data-act="reconnect">接続する</button><button class="btn" data-act="switch">保存先の切り替え</button></div>';
-  } else {
-    h += '<div class="name"><span class="dot"></span><span class="nm">ブラウザ（ローカルストレージ）</span></div>'
-      + (FS_OK ? '<div class="acts"><button class="btn" data-act="switch">保存先の切り替え</button></div>' : '');
+  const row = (id, label, title, state) => '<button class="root' + (id === activeRoot ? ' on' : '') + '" data-root="' + esc(id) + '" title="' + esc(title) + '">'
+    + '<span class="dot' + (state === '未接続' ? ' off' : '') + '"></span><span class="nm">' + esc(label) + '</span>'
+    + (state ? '<span class="st">' + state + '</span>' : '')
+    + (id ? '<span class="rx" data-act="remove" data-id="' + esc(id) + '" title="一覧から外す">×</span>' : '') + '</button>';
+  let h = '<div class="lbl">保存先</div><div class="roots">';
+  h += row('', 'ブラウザ（ローカルストレージ）', 'ブラウザの中に保存します', '');
+  for (const r of roots) {
+    const live = r.id === activeRoot && dirHandle;
+    h += row(r.id, shortName(r.label || 'フォルダ'), r.label, live ? '' : r.id === activeRoot ? '未接続' : '');
   }
+  h += '</div>';
+  if (FS_OK) h += '<div class="acts"><button class="btn" data-act="add">＋ フォルダを追加</button>'
+    + (dirHandle ? '<button class="btn" data-act="reload">再読み込み</button>' : '')
+    + (!dirHandle && activeRoot ? '<button class="btn primary" data-act="reconnect">接続する</button>' : '') + '</div>';
   fsEl.innerHTML = h;
   fsEl.hidden = false;
 }
 async function fsReconnect() {
   if (!pendingHandle) return;
   try {
-    if ((await pendingHandle.requestPermission({ mode: 'readwrite' })) === 'granted') await fsConnect(pendingHandle);
+    if ((await pendingHandle.requestPermission({ mode: 'readwrite' })) === 'granted') { dirHandle = pendingHandle; pendingHandle = null; renderFs(); await fsSyncFromFolder(); renderFs(); }
     else toast('フォルダへのアクセスが許可されませんでした');
   } catch (err) { fsError(err, 'フォルダに接続できませんでした'); }
 }
-async function fsOff() {
-  dirHandle = null; pendingHandle = null; fsDirty.clear(); await idb.del('dir');
-  for (const n of notes) { delete n.file; delete n.fsMtime; }
-  persist(); renderFs(); toast('ブラウザに保存します（フォルダの .md はそのまま残っています）', 3000);
+// move to another place. Runs inside a click, because asking for permission needs one —
+// and it asks before flushing, so a slow write-out can't eat the click's activation.
+async function fsSwitch(id) {
+  if (id === activeRoot && (!id || dirHandle)) return;
+  const r = rootById(id);
+  let h = null, perm = 'granted';
+  if (r) {
+    h = await idb.get('dir:' + id);
+    if (!h) { toast('このフォルダの接続情報が見つかりません。一覧から外して追加し直してください', 6000); return; }
+    try {
+      perm = await h.queryPermission({ mode: 'readwrite' });
+      if (perm !== 'granted') perm = await h.requestPermission({ mode: 'readwrite' });
+    } catch (err) { perm = 'denied'; fsError(err, 'フォルダに接続できませんでした'); }
+  }
+  if (editingEl) leaveEdit(editingEl);
+  if (msel) splitMerged();
+  await fsFlush(); // what is still pending belongs to the place we are leaving
+  dropPlaceholder(activeRoot);
+  dirHandle = null; pendingHandle = null; fsDirty.clear();
+  activeRoot = id; navStack = []; navAt = -1; resume = null; activeFolder = '';
+  if (r && perm === 'granted') { dirHandle = h; await fsSyncFromFolder(); }
+  else if (r) { pendingHandle = h; toast('「' + r.label + '」は未接続です。変更はブラウザにだけ残ります', 5000); }
+  ensureNote();
+  renderNote(); renderList(); renderFs(); renderNav(); persist();
 }
-// one dialog for both "switch where notes are saved" and "reconnect to last folder"
+// add a folder as a new place and move into it
+async function fsAddRoot(fromSetup) {
+  let h;
+  try { h = await pickDirectory(); } catch (err) { fsError(err, 'フォルダを開けませんでした'); return; }
+  for (const r of roots) { // the same folder twice is just a switch
+    const old = await idb.get('dir:' + r.id);
+    try { if (old && await old.isSameEntry(h)) { await fsSwitch(r.id); return; } } catch (e) {}
+  }
+  const id = 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  await idb.set('dir:' + id, h);
+  if (editingEl) leaveEdit(editingEl);
+  await fsFlush();
+  dropPlaceholder(activeRoot);
+  roots.push({ id, label: h.name });
+  dirHandle = null; pendingHandle = null; fsDirty.clear();
+  const from = activeRoot;
+  activeRoot = id; navStack = []; navAt = -1; resume = null; activeFolder = '';
+  dirHandle = h;
+  if (fromSetup) for (const n of notes) if (rootOf(n) === from && !n.sample) n.root = id; // the starter notes come along
+  await fsSyncFromFolder();
+  for (const n of visibleNotes()) if (!n.file) fsMark(n.id);
+  await fsFlush();
+  ensureNote();
+  renderNote(); renderList(); renderFs(); renderNav(); persist();
+  toast('「' + h.name + '」を開きました');
+}
+// taking a folder off the list leaves the .md files alone; its notes go with it
+async function fsRemoveRoot(id) {
+  const r = rootById(id); if (!r) return;
+  for (const n of notes) if (rootOf(n) === id) delete histories[n.id];
+  notes = notes.filter(n => rootOf(n) !== id);
+  folders = folders.filter(f => (f.root || '') !== id);
+  roots = roots.filter(x => x.id !== id);
+  await idb.del('dir:' + id);
+  if (activeRoot === id) {
+    dirHandle = null; pendingHandle = null; fsDirty.clear();
+    activeRoot = ''; navStack = []; navAt = -1; resume = null; activeFolder = '';
+    ensureNote(); renderNote();
+  }
+  renderList(); renderFs(); renderNav(); persist();
+  toast('「' + r.label + '」を一覧から外しました（フォルダの .md はそのままです）', 4000);
+}
+// one dialog for reconnecting and for taking a folder off the list
 const fsDlg = $('#fsDlg');
 let fsDlgOk = null;
-function fsDialog(kind) {
-  const name = (dirHandle || pendingHandle || {}).name || '';
+function fsDialog(kind, arg) {
+  const name = (dirHandle || pendingHandle || {}).name || (rootById(activeRoot) || {}).label || '';
+  const gone = rootById(arg) || {};
   const d = {
-    toFolder: ['保存先の切り替え', 'ローカルPCのフォルダを選択してください。いまのメモはそのフォルダに .md として書き出し、フォルダにある .md も読み込みます。', 'フォルダを選択', async () => { try { const h = await pickDirectory(); await fsConnect(h); } catch (err) { fsError(err, 'フォルダを開けませんでした'); } }],
-    toBrowser: ['保存先の切り替え', 'ブラウザ（ローカルストレージ）に保存します。メモはブラウザに残り、「' + name + '」の .md ファイルも消えません。', '切り替える', fsOff],
     reconnect: ['フォルダに再接続してください', '「' + name + '」に .md で保存していましたが、いまは接続が切れています。接続し直すまでフォルダには保存されず、変更はブラウザにだけ残ります（接続したときにフォルダへ反映します）。', '接続する', fsReconnect],
+    removeRoot: ['フォルダを一覧から外しますか？', '「' + (gone.label || '') + '」をこのアプリの一覧から外します。フォルダの中の .md ファイルはそのまま残り、あとで「＋ フォルダを追加」から開き直せます。', '外す', () => fsRemoveRoot(arg)],
   }[kind];
   $('#fsDlgTitle').textContent = d[0]; $('#fsDlgMsg').textContent = d[1];
   fsDlg.querySelector('[data-dlg=ok]').textContent = d[2];
-  fsDlg.querySelector('[data-dlg=cancel]').textContent = kind === 'reconnect' ? 'あとで' : 'キャンセル';
+  fsDlg.querySelector('[data-dlg=cancel]').textContent = kind === 'reconnect' ? 'あとで' : 'やめる';
   fsDlgOk = d[3]; fsDlg.hidden = false; fsDlg.querySelector('[data-dlg=ok]').focus();
 }
 fsDlg.addEventListener('click', e => {
@@ -3007,25 +3113,14 @@ fsDlg.addEventListener('click', e => {
 });
 fsDlg.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); fsDlg.hidden = true; } });
 fsEl.addEventListener('click', async e => {
-  const act = e.target.dataset.act; if (!act) return;
-  if (act === 'switch') fsDialog(dirHandle || pendingHandle ? 'toBrowser' : 'toFolder');
-  else if (act === 'reconnect') fsReconnect();
-  else if (act === 'reload') { try { await fsSyncFromFolder(); toast('フォルダを読み直しました'); } catch (err) { fsError(err, 'フォルダを読めませんでした'); } }
+  const act = e.target.dataset.act;
+  if (act === 'remove') { e.stopPropagation(); fsDialog('removeRoot', e.target.dataset.id); return; }
+  if (act === 'add') { fsAddRoot(); return; }
+  if (act === 'reconnect') { fsReconnect(); return; }
+  if (act === 'reload') { try { await fsSyncFromFolder(); renderList(); toast('フォルダを読み直しました'); } catch (err) { fsError(err, 'フォルダを読めませんでした'); } return; }
+  const row = e.target.closest('[data-root]');
+  if (row) fsSwitch(row.dataset.root);
 });
-async function fsConnect(h, fromSetup) {
-  dirHandle = h; pendingHandle = null;
-  await idb.set('dir', h);
-  renderFs();
-  await fsSyncFromFolder();
-  if (fromSetup && notes.some(n => !n.sample)) {
-    notes = notes.filter(n => !n.sample);
-    currentId = sortedNotes()[0].id;
-    renderNote(); renderList();
-  }
-  for (const n of notes) if (!n.file) fsMark(n.id);
-  await fsFlush();
-  toast('「' + h.name + '」に保存します');
-}
 // a side that loses a conflict is not thrown away: it stays as its own note, clearly labelled
 function keepLosingCopy(src, md, label) {
   const n = newNote('# ' + noteTitle(src) + '（' + label + 'の写し）\n\n' + md, folderOf(src)); // the copy stays beside the original
@@ -3035,16 +3130,16 @@ function keepLosingCopy(src, md, label) {
 }
 async function fsSyncFromFolder() {
   if (!dirHandle) return;
-  const seen = new Set(); let changedCurrent = false, added = 0, clashes = 0;
+  const seen = new Set(), mine = visibleNotes(); let changedCurrent = false, added = 0, clashes = 0, left = 0;
   try {
     for (const { path: name, handle: h } of await fsWalk(dirHandle, '', [])) {
       seen.add(name);
       const file = await h.getFile();
-      let note = notes.find(n => n.file === name);
+      let note = mine.find(n => n.file === name);
       if (!note) {
         // link by expected file name, then by identical content (e.g. reconnecting to the same folder)
-        note = notes.find(n => !n.file && fileNameFor(n) === name);
-        if (!note) { const txt = await file.text(); note = notes.find(n => !n.file && n.blocks.join('\n') === txt); if (!note) { const n = newNote(txt.replace(/^\uFEFF/, ''), dirPart(name)); n.file = name; n.fsMtime = file.lastModified; n.updated = file.lastModified; notes.push(n); added++; continue; } }
+        note = mine.find(n => !n.file && fileNameFor(n) === name);
+        if (!note) { const txt = await file.text(); note = mine.find(n => !n.file && n.blocks.join('\n') === txt); if (!note) { const n = newNote(txt.replace(/^\uFEFF/, ''), dirPart(name)); n.file = name; n.fsMtime = file.lastModified; n.updated = file.lastModified; notes.push(n); mine.push(n); added++; continue; } }
         note.file = name;
         note.folder = dirPart(name); // moved in the folder: follow it
       }
@@ -3065,11 +3160,13 @@ async function fsSyncFromFolder() {
         }
       }
     }
-    for (const n of notes) if (n.file && !seen.has(n.file)) { delete n.file; delete n.fsMtime; }
+    for (const n of mine) if (n.file && !seen.has(n.file)) { delete n.file; delete n.fsMtime; n.root = ''; left++; }
   } catch (err) { fsError(err, 'フォルダを読めませんでした'); return; }
+  if (added) { dropPlaceholder(activeRoot); if (!cur()) { ensureNote(); changedCurrent = true; } }
   if (changedCurrent) { if (editingEl) editingEl = null; renderNote(); }
   renderList(); persist();
   if (clashes) toast('フォルダとブラウザで' + clashes + '件が食い違いました。新しいほうを残し、もう一方を「…の写し」として別のメモにしました', 6000);
+  else if (left) toast('フォルダから消えた' + left + '件は「ブラウザ」に移しました', 5000);
   else if (added) toast(added + '件の .md を読み込みました');
 }
 function fsMark(id) { if (!dirHandle) return; fsDirty.add(id); clearTimeout(fsTimer); fsTimer = setTimeout(fsFlush, 700); }
@@ -3079,7 +3176,7 @@ async function fsFlush() {
   try {
     for (const id of [...fsDirty]) {
       fsDirty.delete(id);
-      const n = notes.find(x => x.id === id); if (!n) continue;
+      const n = notes.find(x => x.id === id); if (!n || rootOf(n) !== activeRoot) continue;
       const md = n.blocks.join('\n');
       if (!n.file && md.trim() === '') continue; // nothing to write yet
       const name = fileNameFor(n);
@@ -3271,22 +3368,28 @@ const setupEl = $('#setup');
 setupEl.addEventListener('click', async e => {
   const c = e.target.closest('[data-choice]'); if (!c) return;
   const choice = c.dataset.choice;
-  if (choice === 'folder') {
-    try { const h = await pickDirectory(); setupEl.hidden = true; await fsConnect(h, true); }
-    catch (err) { fsError(err, 'フォルダを開けませんでした'); }
-    return;
-  }
+  if (choice === 'folder') { setupEl.hidden = true; await fsAddRoot(true); return; }
   setupEl.hidden = true;
   if (choice === 'browser') { persist(); toast('このブラウザに保存します'); }
 });
 async function fsInit() {
   for (const b of fileMenu.querySelectorAll('[data-fs]')) b.hidden = !FS_OK;
   renderFs(); if (!FS_OK) return;
-  const h = await idb.get('dir');
-  if (!h) { if (firstRun) setupEl.hidden = false; return; }
+  const old = await idb.get('dir'); // saved by the version that knew only one folder
+  const first = roots[0];
+  if (old && first && first.id === 'r0' && !first.label) { first.label = old.name; await idb.set('dir:r0', old); await idb.del('dir'); persist(); }
+  const r = rootById(activeRoot);
+  if (!r) { if (firstRun) setupEl.hidden = false; renderFs(); return; }
+  const h = await idb.get('dir:' + r.id);
+  if (!h) { // the handle is gone: keep the notes, show the place as unconnected
+    renderFs();
+    return;
+  }
+  if (!r.label) { r.label = h.name; persist(); }
   try {
     const perm = await h.queryPermission({ mode: 'readwrite' });
-    if (perm === 'granted') await fsConnect(h); else { pendingHandle = h; renderFs(); fsDialog('reconnect'); }
+    if (perm === 'granted') { dirHandle = h; renderFs(); await fsSyncFromFolder(); renderList(); renderFs(); }
+    else { pendingHandle = h; renderFs(); fsDialog('reconnect'); }
   } catch (e) { pendingHandle = h; renderFs(); fsDialog('reconnect'); }
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && dirHandle && !fsDirty.size) fsSyncFromFolder(); });

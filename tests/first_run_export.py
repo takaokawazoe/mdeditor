@@ -23,7 +23,7 @@ async def main():
         await pg.evaluate("(async()=>{const r=await navigator.storage.getDirectory();const d=await r.getDirectoryHandle('m2',{create:true});const fh=await d.getFileHandle('既存.md',{create:true});const w=await fh.createWritable();await w.write('# 既存のメモ');await w.close()})()")
         await pg.click('[data-choice=folder]'); await pg.wait_for_timeout(1200)
         print("list after folder choice:", await pg.evaluate("[...document.querySelectorAll('#list .t')].map(e=>e.textContent)"))
-        print("fs box:", await pg.evaluate("document.getElementById('fs').innerText.slice(0,20)"))
+        print("place:", await pg.evaluate("document.querySelector('#fs .root.on .nm').textContent"))
         await ctx.close()
         # 3) first run, empty folder → sample kept and written
         ctx = await b.new_context(); pg = await ctx.new_page()
